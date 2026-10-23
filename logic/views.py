@@ -1,4 +1,6 @@
 """Read-side helpers for the student and staff pages: queues, detail views, metrics, alerts, quick replies."""
+import csv
+import io
 import json
 from datetime import timedelta
 from pathlib import Path
@@ -131,6 +133,27 @@ def staff_tickets(staff: dict, status: str | None = None, urgency: str | None = 
     return rows
 
 
+CSV_COLUMNS = [("code", "Ticket"), ("title", "Title"), ("status_label", "Status"), ("urgency_label", "Urgency"),
+               ("landmark", "Place"), ("floor", "Floor"), ("staff_name", "Assigned to"), ("eta_text", "ETA"),
+               ("created_at", "Reported at")]
+
+
+def _csv_safe(value: object) -> str:
+    text = "" if value is None else str(value)
+    return "'" + text if text[:1] in ("=", "+", "-", "@") else text
+
+
+def tickets_csv(rows: list[dict]) -> str:
+    """The staff ticket list as CSV. Student names and roll numbers are left out."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([label for _, label in CSV_COLUMNS])
+    for t in rows:
+        cells = [fmt_ist(t[k]) if k == "created_at" else t.get(k) for k, _ in CSV_COLUMNS]
+        writer.writerow([_csv_safe(c) for c in cells])
+    return buf.getvalue()
+
+
 def staff_metrics(staff: dict) -> dict:
     """Dashboard cards: new, needs_info, in_progress, resolved_today, overdue."""
     counts = tdb.status_counts(scope(staff))
@@ -215,11 +238,11 @@ def analytics(staff: dict) -> dict:
     }
 
 
-def urgent_locations(staff: dict, days: int) -> list[dict]:
-    """Place and category pairs with reports in the last N days; at_threshold once HOTSPOT_REPORTS is reached."""
+def urgent_locations(staff: dict, days: int, threshold: int = config.HOTSPOT_REPORTS) -> list[dict]:
+    """Place and category pairs with reports in the last N days; at_threshold once threshold reports are reached."""
     cat = scope(staff)
     rows = [r for r in tdb.recurring_locations(days, 1) if not cat or r["category"] == cat]
-    return [{**r, "at_threshold": r["count"] >= config.HOTSPOT_REPORTS} for r in rows[:25]]
+    return [{**r, "at_threshold": r["count"] >= threshold} for r in rows[:25]]
 
 
 def escalate(staff: dict, landmark_id: int, landmark: str, category: str) -> str:

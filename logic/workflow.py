@@ -1,10 +1,12 @@
 """Staff and student actions that change ticket state. Every change writes status_history."""
+from datetime import datetime
+
 from ai.keywords import issue_tokens
 from db import groups as gdb
 from db import tickets as tdb
 import config
 from logic import alerts, assignment, priority
-from logic.timeutil import now_utc
+from logic.timeutil import fmt_ist, now_utc
 
 STAFF_STATUSES = ["assigned", "in_progress", "resolved"]
 _RANK = {"waiting": 0, "assigned": 1, "in_progress": 2, "resolved": 3}
@@ -54,6 +56,29 @@ def set_status(ticket_id: int, status: str, note: str, staff: dict) -> None:
         tdb.add_status(other["id"], status, f"Same issue as {ticket['code']}: {note or status.replace('_', ' ')}", by)
         if other["assigned_to"] != ticket["assigned_to"] and ticket["assigned_to"]:
             tdb.assign_ticket(other["id"], ticket["assigned_to"], by)
+
+
+def set_eta(ticket_id: int, eta_at: datetime, staff: dict) -> None:
+    """Staff promise a time for the fix. The student sees it on the ticket; a primary ticket's group and linked tickets follow."""
+    ticket = tdb.get_ticket(ticket_id)
+    if ticket is None:
+        raise ValueError("Unknown ticket.")
+    if ticket["status"] == "resolved":
+        raise ValueError("This ticket is already resolved.")
+    if eta_at <= now_utc():
+        raise ValueError("Pick a time in the future.")
+    by = f"{staff['name']} (staff)"
+    text = f"Expected by {fmt_ist(eta_at)}."
+    tdb.update_ticket(ticket_id, {"eta_at": eta_at})
+    tdb.add_history(ticket_id, ticket["status"], text, by)
+    if not ticket["group_id"] or not is_primary(ticket):
+        return
+    gdb.update_group(ticket["group_id"], {"eta_at": eta_at})
+    for other in _group_tickets(ticket["group_id"], ticket_id):
+        if other["self_resolved"]:
+            continue
+        tdb.update_ticket(other["id"], {"eta_at": eta_at})
+        tdb.add_history(other["id"], other["status"], f"Same issue as {ticket['code']}. {text}", by)
 
 
 def mark_self_resolved(ticket_id: int, student: dict) -> None:

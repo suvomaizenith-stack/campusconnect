@@ -50,12 +50,13 @@ def _clean_location(landmark_slug: str | None, floor: str | None) -> tuple[dict 
 def submit_report(
     student: dict, text: str, landmark: str | None = None, floor: str | None = None,
     room: str | None = None, nearby: str | None = None, photo: bytes | None = None, photo_mime: str | None = None,
-    map_x: float | None = None, map_y: float | None = None,
+    map_x: float | None = None, map_y: float | None = None, category: str | None = None,
 ) -> dict:
     """Turn a complaint into a ticket right away and return what to show the student.
 
     landmark is a landmark slug (e.g. "b_block"). Anything left blank (landmark, floor, room, nearby) is read
-    from the text where possible. Never blocked by AI failure. Returns a dict with: ticket_id, code, category,
+    from the text where possible. category is the student's own pick; None means the text decides.
+    Never blocked by AI failure. Returns a dict with: ticket_id, code, category,
     summary, status, staff_name, eta_text, self_help, follow_up_question, missing_fields, cache (live reply of a
     matching group or None), mode ("ai"|"rules"), photo_note, out_of_scope, ambiguous (landmark options to ask about).
     """
@@ -81,7 +82,8 @@ def submit_report(
         photo_note, _ = describe_photo(photo_bytes, photo_mime_out)
 
     analysis = triage.analyse(text, where, photo_note if photo_note and "not analysed" not in photo_note else None)
-    category = validate_category(analysis["category"])
+    chosen = validate_category(category) if category else None
+    category = chosen or validate_category(analysis["category"])
 
     match = cache.lookup({"category": category, "landmark_id": lm["id"] if lm else None, "floor": floor, "text": text})
     primary = tdb.get_ticket(match["primary"]["id"]) if match and match["primary"] else None
@@ -107,7 +109,7 @@ def submit_report(
         "map_x": map_x, "map_y": map_y, "group_id": group_id,
         "ai_confidence": analysis["confidence"], "language": analysis["language"],
         "dup_review": "pending" if match else "none",
-        "info_complete": not analysis["missing_fields"], "needs_review": analysis["needs_review"],
+        "info_complete": not analysis["missing_fields"], "needs_review": analysis["needs_review"] and chosen is None,
         "missing_fields": analysis["missing_fields"], "follow_up_question": analysis["follow_up_question"] or None,
         "eta_at": eta, "photo": photo_bytes, "photo_mime": photo_mime_out, "photo_note": photo_note,
         "ai_mode": analysis["mode"],
@@ -132,7 +134,7 @@ def submit_report(
         "status": ticket["status"], "staff_name": ticket["staff_name"], "eta_text": eta_text(ticket["eta_at"]),
         "self_help": self_help(category, text), "follow_up_question": analysis["follow_up_question"],
         "missing_fields": analysis["missing_fields"], "cache": cache.build_reply(group_id) if match else None,
-        "mode": analysis["mode"], "photo_note": photo_note, "out_of_scope": analysis["out_of_scope"],
+        "mode": analysis["mode"], "photo_note": photo_note, "out_of_scope": analysis["out_of_scope"] and chosen is None,
         "ambiguous": [{"id": a["id"], "name": a["name"]} for a in guess["ambiguous"]] if not lm else [],
         "location": where,
     }

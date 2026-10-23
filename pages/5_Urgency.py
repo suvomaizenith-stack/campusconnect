@@ -1,6 +1,7 @@
 """Urgency: places where reports are piling up, with an escalate action that raises a critical alert."""
 import streamlit as st
 
+from logic import settings as settings_logic
 from logic import views
 from ui.session import require_role
 from ui.theme import category_chip, empty_state, esc, page_header
@@ -9,9 +10,21 @@ staff = require_role("staff")
 page_header("Urgency", "Locations needing attention",
             "Places where reports are piling up. Escalate raises a critical alert for the team.")
 
+
+def save_threshold() -> None:
+    try:
+        settings_logic.save("hotspot_reports", st.session_state["ug_threshold"], staff["name"])
+    except Exception:
+        st.toast("Could not save the threshold. Try again.")
+
+
 WINDOWS = {"Last 24 hours": 1, "Last 7 days": 7}
 window = st.segmented_control("Window", list(WINDOWS), default="Last 24 hours", key="ug_window")
-rows = views.urgent_locations(staff, WINDOWS[window or "Last 24 hours"])
+threshold = st.slider("Threshold reached at this many reports", *settings_logic.HOTSPOT_RANGE,
+                      value=settings_logic.load()["hotspot_reports"], key="ug_threshold", on_change=save_threshold,
+                      disabled=not staff.get("is_admin"),
+                      help="Places with this many reports are marked 'Threshold reached'. Only admins can change it.")
+rows = views.urgent_locations(staff, WINDOWS[window or "Last 24 hours"], threshold)
 
 if not rows:
     empty_state("Nothing needs attention", "No place has reports in this window.", "circle-check")

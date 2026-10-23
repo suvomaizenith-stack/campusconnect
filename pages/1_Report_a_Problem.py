@@ -1,12 +1,14 @@
 """Student: report a problem. Ticket is created immediately; the reply shows self-help, staff and ETA."""
 import streamlit as st
 
-from logic import cache, chat, map_data, mapfile, tickets, workflow
+import config
+from logic import cache, chat, map_data, mapfile, safety, tickets, workflow
 from ui.mapview import campus_map, focus_on, outline
 from ui.session import require_role
 from ui.theme import category_chip, chip, esc, icon, meta, page_header
 
 AUTO = "Detect from my message"
+CATEGORY_BY_LABEL = {config.CATEGORY_LABELS[c]: c for c in config.CATEGORIES}
 
 student = require_role("student")
 page_header("Report a problem", "What is going wrong?", "Describe it the way you would tell a friend. We will create a ticket right away.")
@@ -17,6 +19,11 @@ if not landmarks:
     st.stop()
 by_name = {lm["name"]: lm for lm in landmarks}
 by_slug = {lm["slug"]: lm for lm in landmarks}
+
+qr_slug = st.query_params.get("landmark")
+if qr_slug in by_slug and st.session_state.get("rp_qr") != qr_slug:
+    st.session_state["rp_qr"] = qr_slug
+    st.session_state["rp_landmark"] = by_slug[qr_slug]["name"]
 
 pin = st.session_state.get("rp_pin")
 if pin and pin["landmark_id"] in by_slug and st.session_state.pop("rp_pin_apply", False):
@@ -57,9 +64,22 @@ with left:
 with right:
     text = st.text_area("What is the problem?", height=130, max_chars=2000,
                         placeholder="e.g. the tap near the water cooler on B block 2nd floor keeps leaking")
+    if safety.is_safety_report(text):
+        with st.container(border=True):
+            st.markdown(f"**{icon('triangle-alert', 16)} If someone is hurt or in danger, contact them now**",
+                        unsafe_allow_html=True)
+            st.caption("Your report still goes to staff. Do not wait for a reply here.")
+            for service_id in safety.CONTACT_SERVICES:
+                panel = map_data.service_panel(service_id)
+                if panel and panel["contact"]:
+                    contact = panel["contact"]
+                    st.markdown(f"**{esc(panel['name'])}** " + meta("phone", contact.get("phone", ""))
+                                + meta("clock", contact.get("hours", "")), unsafe_allow_html=True)
     read = tickets.read_location(text) if text.strip() else None
     choice = st.selectbox("Where is it?", [AUTO] + list(by_name), key="rp_landmark")
     chosen_slug = by_name[choice]["slug"] if choice != AUTO else (read["landmark"] if read else None)
+    kind = st.selectbox("What kind of problem?", [AUTO] + list(CATEGORY_BY_LABEL), key="rp_category")
+    category = CATEGORY_BY_LABEL.get(kind)
 
     ambiguous_pick = None
     if not chosen_slug and not pin and read and read["ambiguous"]:
@@ -104,7 +124,7 @@ with right:
                     st.session_state["rp_result"] = tickets.submit_report(
                         student, text, final_slug, None if floor == "Not sure" else floor, room, nearby,
                         photo.getvalue() if photo else None, photo.type if photo else None,
-                        pin["x"] if use_pin else None, pin["y"] if use_pin else None,
+                        pin["x"] if use_pin else None, pin["y"] if use_pin else None, category=category,
                     )
                     st.session_state["rp_new"] = True
                     for k in ("rp_pin", "rp_focus"):

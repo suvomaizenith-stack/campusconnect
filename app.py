@@ -39,14 +39,16 @@ URGENCY = st.Page("pages/5_Urgency.py", title="Urgency")
 ANALYTICS = st.Page("pages/6_Analytics.py", title="Analytics")
 LOCATIONS = st.Page("pages/7_Locations.py", title="Locations")
 SETTINGS = st.Page("pages/8_Settings.py", title="Settings")
+LATEST = st.Page("pages/9_Latest_Reports.py", title="Latest reports")
 ROLE_PAGES = {
     None: [HOME],
-    "student": [HOME, REPORT, TICKETS, MAP],
+    "student": [HOME, REPORT, TICKETS, MAP, LATEST],
     "staff": [HOME, DASH, URGENCY, ANALYTICS, LOCATIONS, MAP],
 }
 NAV_ICONS = {
     HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DASH: "layout-dashboard", MAP: "map",
-    URGENCY: "triangle-alert", ANALYTICS: "activity", LOCATIONS: "map-pinned", SETTINGS: "wrench",
+    URGENCY: "triangle-alert", ANALYTICS: "activity", LOCATIONS: "map-pinned", SETTINGS: "wrench", LATEST: "megaphone",
+
 }
 
 user = current_user()

@@ -49,7 +49,7 @@ ICON_BUTTONS = [
     "house", "file-pen-line", "ticket", "layout-dashboard", "map", "log-out", "sun", "moon", "send", "arrow-up-right",
     "user-check", "sparkles", "check", "circle-check", "undo-2", "refresh-cw", "x", "hand-heart", "bell", "sticky-note",
     "log-in", "user-plus", "arrow-right", "git-merge", "locate-fixed", "triangle-alert",
-    "activity", "map-pinned", "wrench",
+    "activity", "map-pinned", "wrench", "clock",
 ]
 
 FONTS = "@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap');"

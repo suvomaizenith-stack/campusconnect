@@ -1,8 +1,12 @@
 """Staff dashboard: metrics, recurring banners, filterable ticket list, detail panel, duplicate review, alerts, insights."""
+from datetime import timedelta
+
 import streamlit as st
 
 import config
 from logic import assignment, chat, priority, views, workflow
+from logic import settings as settings_logic
+from logic.timeutil import from_ist, now_utc, to_ist
 from ui.session import require_role
 from ui.theme import banner, chip, empty_state, esc, meta, page_header, section_head, stat_row, timeline
 
@@ -39,8 +43,9 @@ if "flash" in st.session_state:
     msg, is_err = st.session_state.pop("flash")
     (st.error if is_err else st.success)(msg)
 
-for r in views.recurring(staff):
-    banner(r["message"], "critical" if r["level"] == "red" else "hotspot")
+if settings_logic.load()["recurring_banners"]:
+    for r in views.recurring(staff):
+        banner(r["message"], "critical" if r["level"] == "red" else "hotspot")
 
 m = views.staff_metrics(staff)
 stat_row([
@@ -184,6 +189,21 @@ def detail_panel(ticket_id: int) -> None:
                 except ValueError as e:
                     flash(str(e), True)
                 st.rerun()
+        with st.form(f"eta_{ticket_id}"):
+            ist_now = to_ist(now_utc())
+            seed = to_ist(t["eta_at"]) if t["eta_at"] else ist_now + timedelta(hours=2)
+            e1, e2 = st.columns(2)
+            eta_day = e1.date_input("Expected by (IST date)", value=max(seed.date(), ist_now.date()),
+                                    min_value=ist_now.date())
+            eta_clock = e2.time_input("Expected by (IST time)", value=seed.time().replace(second=0, microsecond=0),
+                                      step=900)
+            if st.form_submit_button("Share expected time", key=f"i_clock__eta{ticket_id}"):
+                try:
+                    workflow.set_eta(ticket_id, from_ist(eta_day, eta_clock), staff)
+                    flash("Expected time shared with the student.")
+                except ValueError as e:
+                    flash(str(e), True)
+                st.rerun()
         with st.form(f"inote_{ticket_id}", clear_on_submit=True):
             inote = st.text_input("Internal note (staff only)", max_chars=300)
             if st.form_submit_button("Add internal note", key=f"i_sticky-note__inote{ticket_id}"):
@@ -215,6 +235,8 @@ with tab_tickets:
 
     left, right = st.columns([2, 3], gap="large")
     with left:
+        st.download_button("Download CSV", views.tickets_csv(rows), file_name="campus_saathi_tickets.csv",
+                           mime="text/csv", key="dl_tickets")
         if not rows:
             empty_state("Nothing matches these filters", "Try a different status or clear the search.", "party-popper")
         for t in rows:

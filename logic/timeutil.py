@@ -1,5 +1,5 @@
 """Time helpers: store UTC, show IST."""
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 IST = timezone(timedelta(hours=5, minutes=30), "IST")
 
@@ -11,6 +11,11 @@ def now_utc() -> datetime:
 def to_ist(dt: datetime) -> datetime:
     """Convert an aware datetime to IST."""
     return dt.astimezone(IST)
+
+
+def from_ist(day: date, clock: time) -> datetime:
+    """An IST calendar date and wall-clock time as an aware UTC datetime."""
+    return datetime.combine(day, clock, tzinfo=IST).astimezone(timezone.utc)
 
 
 def fmt_ist(dt: datetime | None) -> str:
