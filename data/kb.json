@@ -107,25 +107,25 @@
   "contacts": {
     "helpdesk": {
       "name": "Campus Helpdesk",
-      "phone": "0000-000-0000",
+      "phone": "0000-000-1234",
       "hours": "Mon-Sat, 9 AM-5 PM",
       "note": "PLACEHOLDER number - confirm with the university"
     },
     "security": {
       "name": "Security Desk",
-      "phone": "0000-000-0000",
+      "phone": "0000-000-5678",
       "hours": "24 x 7",
       "note": "PLACEHOLDER number - confirm with the university"
     },
     "medical": {
       "name": "Medical Room",
-      "phone": "0000-000-0000",
+      "phone": "0000-000-9123",
       "hours": "Confirm with the university",
       "note": "PLACEHOLDER number - confirm with the university"
     },
     "it_support": {
       "name": "IT Support",
-      "phone": "0000-000-0000",
+      "phone": "0000-000-4321",
       "hours": "Mon-Sat, 9 AM-5 PM",
       "note": "PLACEHOLDER number - confirm with the university"
     }
