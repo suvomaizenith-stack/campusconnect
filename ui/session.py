@@ -1,0 +1,30 @@
+"""Login state, role guard and logout for Streamlit pages."""
+import streamlit as st
+
+USER_KEY = "user"
+
+
+def current_user() -> dict | None:
+    """Return the logged-in user dict or None."""
+    return st.session_state.get(USER_KEY)
+
+
+def login_student(name: str, roll: str) -> None:
+    st.session_state[USER_KEY] = {"role": "student", "name": name, "roll": roll}
+
+
+def login_staff(staff: dict) -> None:
+    st.session_state[USER_KEY] = {"role": "staff", **staff}
+
+
+def logout() -> None:
+    st.session_state.pop(USER_KEY, None)
+
+
+def require_role(*roles: str) -> dict:
+    """Stop the page unless the user has one of the given roles."""
+    user = current_user()
+    if not user or user["role"] not in roles:
+        st.warning("Please log in from the Home page to see this.")
+        st.stop()
+    return user

@@ -1,6 +1,11 @@
-streamlit>=1.35
-python-dotenv>=1.0
-folium>=0.16
-streamlit-folium>=0.20
-google-genai>=0.8
-groq>=0.9
+streamlit>=1.40
+folium
+streamlit-folium
+streamlit-autorefresh
+google-genai
+groq
+python-dotenv
+psycopg[binary]
+psycopg-pool
+Pillow
+pytest

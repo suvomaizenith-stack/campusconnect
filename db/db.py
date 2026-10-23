@@ -1,23 +1,77 @@
-"""SQLite helpers for CampusConnect."""
-import sqlite3
+"""Supabase Postgres helpers for CampusConnect. Connections come from a shared pool."""
+import threading
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "campusconnect.db"
-SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
+
+from config import DATABASE_URL
+
+SCHEMA_PATH = Path(__file__).resolve().parent / "schema_postgres.sql"
+
+# Columns added after the base schema; ADD COLUMN IF NOT EXISTS keeps this re-runnable.
+ADDED_COLUMNS = [
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS student_roll TEXT",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS student_name TEXT",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS photo BYTEA",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS photo_mime TEXT",
+    "ALTER TABLE status_history ADD COLUMN IF NOT EXISTS note TEXT",
+]
+
+_pool: ConnectionPool | None = None
+_pool_lock = threading.Lock()
 
 
-def get_conn() -> sqlite3.Connection:
-    """Open a SQLite connection with row access by column name."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+def _get_pool() -> ConnectionPool:
+    """Create the shared pool on first use, so importing this module never connects."""
+    global _pool
+    with _pool_lock:
+        if _pool is None:
+            if not DATABASE_URL:
+                raise RuntimeError("DATABASE_URL is not set. Add your Supabase URL to .env.")
+            # prepare_threshold=None: Supabase's transaction pooler does not support prepared statements.
+            _pool = ConnectionPool(
+                DATABASE_URL,
+                min_size=1,
+                max_size=5,
+                kwargs={"row_factory": dict_row, "prepare_threshold": None},
+            )
+        return _pool
+
+
+def get_conn():
+    """Context manager yielding a pooled connection. Commits on success, rolls back on error."""
+    return _get_pool().connection()
+
+
+def migrate(conn) -> None:
+    """Add columns that are missing from the base schema. Safe to run repeatedly."""
+    for ddl in ADDED_COLUMNS:
+        conn.execute(ddl)
 
 
 def init_db() -> None:
-    """Create all tables by running schema.sql."""
+    """Create tables and RLS from schema_postgres.sql, then apply added columns."""
     with get_conn() as conn:
-        conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        conn.execute(SCHEMA_PATH.read_text(encoding="utf-8"))
+        migrate(conn)
+
+
+def find_staff_by_email(email: str) -> dict | None:
+    """Return the staff row with this email, or None."""
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM staff WHERE email = %s", (email,)).fetchone()
+    return dict(row) if row else None
+
+
+def upsert_landmarks(landmarks: list[dict]) -> None:
+    """Insert landmarks by name, skipping ones that already exist."""
+    with get_conn() as conn:
+        conn.cursor().executemany(
+            "INSERT INTO landmarks (name, lat, lng) VALUES (%(name)s, %(lat)s, %(lng)s)"
+            " ON CONFLICT (name) DO NOTHING",
+            landmarks,
+        )
 
 
 def create_ticket(title: str, description: str, category: str, student_email: str) -> int:

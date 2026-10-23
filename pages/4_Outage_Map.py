@@ -1,5 +1,6 @@
-"""Outage map page (placeholder)."""
-import streamlit as st
+"""Outage map. Built in Phase D."""
+from ui.session import require_role
+from ui.theme import card
 
-st.title("🗺️ Outage Map")
-st.info("TODO: folium map of landmarks and open tickets.")
+require_role("student", "staff")
+card("Outage Map", "Coming in Phase D.")

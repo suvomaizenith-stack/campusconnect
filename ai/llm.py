@@ -1,12 +1,7 @@
-"""Thin LLM wrapper supporting Groq and Gemini."""
+"""Thin LLM wrapper for Gemini or Groq with timeouts and clean errors."""
 import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-GROQ_MODEL = "llama-3.3-70b-versatile"
-GEMINI_MODEL = "gemini-2.0-flash"
+from config import GEMINI_MODEL, GROQ_MODEL, LLM_RETRIES, LLM_TIMEOUT_S, PROVIDER
 
 
 class LLMError(Exception):
@@ -19,9 +14,10 @@ def _groq(messages: list[dict], system: str | None, json_mode: bool) -> str:
 
     msgs = ([{"role": "system", "content": system}] if system else []) + messages
     kwargs = {"response_format": {"type": "json_object"}} if json_mode else {}
-    resp = Groq(api_key=os.environ["GROQ_API_KEY"]).chat.completions.create(
-        model=GROQ_MODEL, messages=msgs, **kwargs
+    client = Groq(
+        api_key=os.environ["GROQ_API_KEY"], timeout=LLM_TIMEOUT_S, max_retries=LLM_RETRIES
     )
+    resp = client.chat.completions.create(model=GROQ_MODEL, messages=msgs, **kwargs)
     return resp.choices[0].message.content or ""
 
 
@@ -41,22 +37,22 @@ def _gemini(messages: list[dict], system: str | None, json_mode: bool) -> str:
         system_instruction=system,
         response_mime_type="application/json" if json_mode else None,
     )
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    resp = client.models.generate_content(
-        model=GEMINI_MODEL, contents=contents, config=config
+    client = genai.Client(
+        api_key=os.environ["GEMINI_API_KEY"],
+        http_options=types.HttpOptions(timeout=int(LLM_TIMEOUT_S * 1000)),  # ms
     )
+    resp = client.models.generate_content(model=GEMINI_MODEL, contents=contents, config=config)
     return resp.text or ""
 
 
 def chat(messages: list[dict], system: str | None = None, json_mode: bool = False) -> str:
     """Send chat messages to the configured PROVIDER and return the reply text."""
-    provider = os.getenv("PROVIDER", "groq").lower()
     calls = {"groq": _groq, "gemini": _gemini}
-    if provider not in calls:
-        raise LLMError(f"Unknown PROVIDER '{provider}' (use 'groq' or 'gemini').")
+    if PROVIDER not in calls:
+        raise LLMError(f"Unknown PROVIDER '{PROVIDER}' (use 'groq' or 'gemini').")
     try:
-        return calls[provider](messages, system, json_mode)
+        return calls[PROVIDER](messages, system, json_mode)
     except KeyError as e:
         raise LLMError(f"Missing environment variable: {e}") from e
-    except Exception as e:
-        raise LLMError(f"{provider} call failed: {e}") from e
+    except Exception as e:  # timeouts, network, quota, bad responses
+        raise LLMError(f"{PROVIDER} call failed: {e}") from e

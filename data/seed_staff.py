@@ -1,8 +1,9 @@
 """Seed demo staff accounts. Run: python -m data.seed_staff"""
-import hashlib
-import os
+import json
+from pathlib import Path
 
-from db.db import get_conn, init_db
+from db.db import get_conn, init_db, upsert_landmarks
+from logic.auth import hash_password
 
 STAFF = [
     ("Ravi Plumber", "plumbing@campus.edu", "plumbing"),
@@ -11,27 +12,22 @@ STAFF = [
     ("Ivan Internet", "internet@campus.edu", "internet"),
 ]
 DEMO_PASSWORD = "changeme123"
-
-
-def hash_password(password: str, salt: bytes | None = None) -> str:
-    """Return 'salt$hash' using PBKDF2-SHA256."""
-    salt = salt or os.urandom(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 100_000)
-    return f"{salt.hex()}${digest.hex()}"
+LANDMARKS_PATH = Path(__file__).resolve().parent / "landmarks.json"
 
 
 def seed() -> None:
-    """Insert the demo staff accounts if missing."""
+    """Insert demo staff and landmarks if missing. Safe to re-run."""
     init_db()
     with get_conn() as conn:
         for name, email, dept in STAFF:
             conn.execute(
-                "INSERT OR IGNORE INTO staff (name, email, password_hash, department)"
-                " VALUES (?, ?, ?, ?)",
+                "INSERT INTO staff (name, email, password_hash, department)"
+                " VALUES (%s, %s, %s, %s) ON CONFLICT (email) DO NOTHING",
                 (name, email, hash_password(DEMO_PASSWORD), dept),
             )
-    print(f"Seeded {len(STAFF)} staff (password: {DEMO_PASSWORD})")
+    upsert_landmarks(json.loads(LANDMARKS_PATH.read_text(encoding="utf-8")))
 
 
 if __name__ == "__main__":
     seed()
+    print(f"Seeded {len(STAFF)} staff (password: {DEMO_PASSWORD})")
