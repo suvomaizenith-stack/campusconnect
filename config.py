@@ -3,6 +3,17 @@ import os
 
 from dotenv import load_dotenv
 
+def _copy_streamlit_secrets() -> None:
+    try:
+        import streamlit as st
+        for key, value in st.secrets.items():
+            if isinstance(value, str):
+                os.environ.setdefault(key, value)
+    except Exception:  # no secrets file or not running under Streamlit
+        pass
+
+
+_copy_streamlit_secrets()
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # Supabase Postgres connection string

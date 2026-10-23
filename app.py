@@ -25,7 +25,7 @@ inject_css()
 _error = _boot()
 if _error:
     _boot.clear()
-    st.error("Campus Saathi cannot reach its database right now. Check DATABASE_URL in .env and try again.")
+    st.error("Campus Saathi cannot reach its database right now. Check DATABASE_URL in .env (or the app's Secrets on Streamlit Cloud) and try again.")
     st.caption(f"Technical detail: {_error}")
     st.stop()
 
