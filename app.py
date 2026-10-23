@@ -35,11 +35,24 @@ REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem")
 TICKETS = st.Page("pages/2_My_Tickets.py", title="My Tickets")
 DASH = st.Page("pages/3_Staff_Dashboard.py", title="Dashboard")
 MAP = st.Page("pages/4_Outage_Map.py", title="Outage Map")
-ROLE_PAGES = {None: [HOME], "student": [HOME, REPORT, TICKETS, MAP], "staff": [HOME, DASH, MAP]}
-NAV_ICONS = {HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DASH: "layout-dashboard", MAP: "map"}
+URGENCY = st.Page("pages/5_Urgency.py", title="Urgency")
+ANALYTICS = st.Page("pages/6_Analytics.py", title="Analytics")
+LOCATIONS = st.Page("pages/7_Locations.py", title="Locations")
+SETTINGS = st.Page("pages/8_Settings.py", title="Settings")
+ROLE_PAGES = {
+    None: [HOME],
+    "student": [HOME, REPORT, TICKETS, MAP],
+    "staff": [HOME, DASH, URGENCY, ANALYTICS, LOCATIONS, MAP],
+}
+NAV_ICONS = {
+    HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DASH: "layout-dashboard", MAP: "map",
+    URGENCY: "triangle-alert", ANALYTICS: "activity", LOCATIONS: "map-pinned", SETTINGS: "wrench",
+}
 
 user = current_user()
 pages = ROLE_PAGES[user["role"] if user else None]
+if user and user.get("is_admin"):
+    pages = pages + [SETTINGS]
 nav = st.navigation(pages, position="hidden")
 
 with st.sidebar:

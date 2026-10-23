@@ -155,3 +155,13 @@ def acknowledge_alert(alert_id: int, staff_name: str) -> None:
             "UPDATE alerts SET acknowledged_by = %s, acknowledged_at = now() WHERE id = %s AND acknowledged_at IS NULL",
             (staff_name, alert_id),
         )
+
+
+def open_group_at(landmark_id: int, category: str) -> dict | None:
+    """Most recently reported unresolved group for a place and category, or None."""
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT id, title FROM issue_groups WHERE landmark_id = %s AND category = %s AND status <> 'resolved'"
+            " ORDER BY last_reported_at DESC LIMIT 1",
+            (landmark_id, category),
+        ).fetchone()

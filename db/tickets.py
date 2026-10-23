@@ -347,3 +347,24 @@ def avg_resolution_by_category() -> list[dict]:
             " GROUP BY category ORDER BY category"
         ).fetchall()
     return [{**r, "hours": float(r["hours"])} for r in rows]
+
+
+def daily_volume(days: int, category: str | None = None) -> list[dict]:
+    """Tickets created per day over the last N days including today (zero-filled), optionally for one category."""
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT d::date AS day, count(t.id) AS n FROM generate_series(current_date - %s::int, current_date, interval '1 day') d"
+            " LEFT JOIN tickets t ON t.created_at::date = d::date AND (%s::text IS NULL OR t.category = %s)"
+            " GROUP BY d ORDER BY d",
+            (days - 1, category, category),
+        ).fetchall()
+
+
+def window_summary(days: int, category: str | None = None) -> dict:
+    """Ticket total and resolved count created in the last N days, optionally for one category."""
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT count(*) AS total, count(*) FILTER (WHERE status = 'resolved') AS resolved FROM tickets"
+            " WHERE created_at >= now() - make_interval(days => %s) AND (%s::text IS NULL OR category = %s)",
+            (days, category, category),
+        ).fetchone()

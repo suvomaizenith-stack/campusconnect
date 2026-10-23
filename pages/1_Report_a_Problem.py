@@ -169,3 +169,12 @@ if res:
                         st.session_state["rp_result"]["follow_up_question"] = None
                         st.rerun()
     st.caption("Track this ticket any time from My Tickets in the menu.")
+
+st.divider()
+with st.expander("Need another way?"):
+    desk = map_data.service_panel("helpdesk")
+    st.write("If chat is not solving it, contact the facilities helpdesk during working hours.")
+    if desk and desk["contact"]:
+        st.markdown(meta("phone", desk["contact"].get("phone", "")) + meta("clock", desk["contact"].get("hours", "")),
+                    unsafe_allow_html=True)
+    st.caption("For an emergency, do not use this app. Follow campus emergency procedures or call local emergency services.")

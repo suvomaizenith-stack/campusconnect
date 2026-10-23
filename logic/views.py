@@ -197,3 +197,35 @@ def is_online(staff_id: int) -> bool:
     """Current online flag of a staff member."""
     row = udb.get_staff(staff_id)
     return bool(row and row["is_online"])
+
+
+def analytics(staff: dict) -> dict:
+    """Analytics page data for the staff member's scope: 14-day daily volume, this week against last week, resolution, repeat places."""
+    cat = scope(staff)
+    daily = tdb.daily_volume(14, cat)
+    week = tdb.window_summary(7, cat)
+    repeats = {r["landmark_id"] for r in tdb.recurring_locations(7, 2) if not cat or r["category"] == cat}
+    return {
+        "daily": [(r["day"], r["n"]) for r in daily],
+        "this_week": sum(r["n"] for r in daily[7:]),
+        "last_week": sum(r["n"] for r in daily[:7]),
+        "total": week["total"],
+        "resolved": week["resolved"],
+        "repeat_places": len(repeats),
+    }
+
+
+def urgent_locations(staff: dict, days: int) -> list[dict]:
+    """Place and category pairs with reports in the last N days; at_threshold once HOTSPOT_REPORTS is reached."""
+    cat = scope(staff)
+    rows = [r for r in tdb.recurring_locations(days, 1) if not cat or r["category"] == cat]
+    return [{**r, "at_threshold": r["count"] >= config.HOTSPOT_REPORTS} for r in rows[:25]]
+
+
+def escalate(staff: dict, landmark_id: int, landmark: str, category: str) -> str:
+    """Raise a critical alert on the open group at a place. Returns 'sent', 'exists' or 'none'."""
+    group = gdb.open_group_at(landmark_id, category)
+    if group is None:
+        return "none"
+    msg = f"Escalated by {staff['name']}: {group['title']} at {landmark}."
+    return "sent" if gdb.create_alert(group["id"], "critical", msg) else "exists"
