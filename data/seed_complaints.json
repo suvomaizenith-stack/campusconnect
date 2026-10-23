@@ -1,0 +1,12 @@
+[
+  {"text": "water leaking from the tap in the washroom near room 204", "landmark": "a_block", "floor": "2nd", "room": "204"},
+  {"text": "tap leaking badly in 2nd floor washroom of block A", "landmark": "a_block", "floor": "2nd", "room": ""},
+  {"text": "water pipe leakage near the washroom A block second floor", "landmark": "a_block", "floor": "2nd", "room": ""},
+  {"text": "wifi is very slow in D block 1st floor", "landmark": "d_block", "floor": "1st", "room": ""},
+  {"text": "no internet in D block first floor since morning", "landmark": "d_block", "floor": "1st", "room": ""},
+  {"text": "fan sparking in hostel room 312, smells like burning", "landmark": "boys_hostel", "floor": "3rd", "room": "312"},
+  {"text": "power cut in girls hostel 2nd floor corridor", "landmark": "girls_hostel", "floor": "2nd", "room": ""},
+  {"text": "washroom is very dirty and smells bad", "landmark": "c_block", "floor": "Ground", "room": ""},
+  {"text": "dustbins overflowing near the main gate", "landmark": "main_gate", "floor": "Ground", "room": ""},
+  {"text": "projector not turning on in lab", "landmark": "c_block", "floor": "1st", "room": "Lab 2"}
+]

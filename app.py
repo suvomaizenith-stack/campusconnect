@@ -1,45 +1,81 @@
-"""CampusConnect entry point: theme, one-time seeding, role-based navigation."""
+"""CampusConnect entry point: theme, one-time DB setup, role-based navigation, staff alert bar."""
 import streamlit as st
 
-from data.seed_staff import seed
+from ai.llm import get_ai_status
+from logic import views
+from logic.setup import bootstrap
 from ui.session import current_user, logout
-from ui.theme import inject_css
+from ui.theme import banner, esc, inject_css
 
 st.set_page_config(page_title="CampusConnect", page_icon="🎓", layout="wide")
 
 
 @st.cache_resource
-def _boot() -> bool:
-    """Create tables and demo data once per server process."""
-    seed()
-    return True
+def _boot() -> str | None:
+    """Create tables and load landmarks once per server process. Returns an error message or None."""
+    try:
+        bootstrap()
+    except Exception as e:  # database unreachable or misconfigured
+        return f"{type(e).__name__}"
+    return None
 
 
-_boot()
 inject_css()
+_error = _boot()
+if _error:
+    _boot.clear()
+    st.error("CampusConnect cannot reach its database right now. Check DATABASE_URL in .env and try again.")
+    st.caption(f"Technical detail: {_error}")
+    st.stop()
 
-# TODO (post-MVP): Telegram intake and staff-to-staff channels.
+# TODO (post-MVP): voice notes, Telegram intake, staff-to-staff channels, drafts, learned ETA.
 HOME = st.Page("pages/0_Home.py", title="Home", icon="🏠", default=True)
-STUDENT_PAGES = [
-    HOME,
-    st.Page("pages/1_Report_a_Problem.py", title="Report a Problem", icon="📝"),
-    st.Page("pages/2_My_Tickets.py", title="My Tickets", icon="🎫"),
-    st.Page("pages/4_Outage_Map.py", title="Outage Map", icon="🗺️"),
-]
-STAFF_PAGES = [
-    HOME,
-    st.Page("pages/3_Staff_Dashboard.py", title="Dashboard", icon="🛠️"),
-    st.Page("pages/4_Outage_Map.py", title="Outage Map", icon="🗺️"),
-]
-ROLE_PAGES = {None: [HOME], "student": STUDENT_PAGES, "staff": STAFF_PAGES}
+REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem", icon="📝")
+TICKETS = st.Page("pages/2_My_Tickets.py", title="My Tickets", icon="🎫")
+DASH = st.Page("pages/3_Staff_Dashboard.py", title="Dashboard", icon="🛠️")
+MAP = st.Page("pages/4_Outage_Map.py", title="Outage Map", icon="🗺️")
+ROLE_PAGES = {None: [HOME], "student": [HOME, REPORT, TICKETS, MAP], "staff": [HOME, DASH, MAP]}
 
 user = current_user()
 nav = st.navigation(ROLE_PAGES[user["role"] if user else None])
 
+with st.sidebar:
+    st.markdown('<div class="cc-brand">🎓 CampusConnect</div>', unsafe_allow_html=True)
+
+
+@st.fragment(run_every=15)
+def _staff_alert_bar(staff: dict) -> None:
+    """Red banner for open alerts, a toast for new ones, and the AI status chip."""
+    try:
+        alerts = views.open_alerts(None if staff.get("is_admin") else staff["department"])
+    except Exception:
+        return
+    seen = st.session_state.setdefault("seen_alerts", set())
+    for a in alerts:
+        if a["id"] not in seen:
+            seen.add(a["id"])
+            st.toast(a["message"], icon="🚨" if a["level"] == "critical" else "⚠️")
+    for a in alerts[:3]:
+        banner(a["message"], "critical" if a["level"] == "critical" else "hotspot")
+    if get_ai_status() == "degraded":
+        st.caption("AI status: degraded (using backup rules)")
+
+
+if user and user["role"] == "staff":
+    _staff_alert_bar(user)
+
 if user:
-    st.sidebar.markdown(f"**{user['name']}**  \n{user['role'].title()}")
-    if st.sidebar.button("Log out"):
-        logout()
-        st.rerun()
+    with st.sidebar:
+        if user["role"] == "student":
+            role = f"Student · {user['roll']}"
+        else:
+            role = "Admin · all departments" if user.get("is_admin") else user["department"].title() + " staff"
+        st.markdown(
+            f'<div class="cc-user"><b>{esc(user["name"])}</b><div class="role">{esc(role)}</div></div>',
+            unsafe_allow_html=True,
+        )
+        if st.button("Log out"):
+            logout()
+            st.rerun()
 
 nav.run()

@@ -1,21 +1,42 @@
 """Supabase Postgres helpers for CampusConnect. Connections come from a shared pool."""
+import atexit
 import threading
 from pathlib import Path
 
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+import config
 from config import DATABASE_URL
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema_postgres.sql"
 
-# Columns added after the base schema; ADD COLUMN IF NOT EXISTS keeps this re-runnable.
+# Columns added to tables that already existed in an older deployment; keeps init_db re-runnable.
 ADDED_COLUMNS = [
-    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS student_roll TEXT",
-    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS student_name TEXT",
-    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS photo BYTEA",
-    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS photo_mime TEXT",
-    "ALTER TABLE status_history ADD COLUMN IF NOT EXISTS note TEXT",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS floors TEXT[] NOT NULL DEFAULT '{}'",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS slug TEXT",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'place'",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS number INT",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS map_x DOUBLE PRECISION",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS map_y DOUBLE PRECISION",
+    "ALTER TABLE landmarks ADD COLUMN IF NOT EXISTS outside_campus BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE issue_groups ADD COLUMN IF NOT EXISTS map_x DOUBLE PRECISION",
+    "ALTER TABLE issue_groups ADD COLUMN IF NOT EXISTS map_y DOUBLE PRECISION",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS map_x DOUBLE PRECISION",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS map_y DOUBLE PRECISION",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS ai_confidence DOUBLE PRECISION",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS language TEXT",
+    "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS urgency_override TEXT",
+    "ALTER TABLE status_history ADD COLUMN IF NOT EXISTS internal BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE staff ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'staff'",
+    "CREATE UNIQUE INDEX IF NOT EXISTS landmarks_slug_idx ON landmarks (slug)",
+    # Older deployments stored lat/lng; the map now uses normalised map_x/map_y.
+    """DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landmarks' AND column_name = 'lat') THEN
+            ALTER TABLE landmarks ALTER COLUMN lat DROP NOT NULL;
+            ALTER TABLE landmarks ALTER COLUMN lng DROP NOT NULL;
+        END IF;
+    END $$""",
 ]
 
 _pool: ConnectionPool | None = None
@@ -33,10 +54,23 @@ def _get_pool() -> ConnectionPool:
             _pool = ConnectionPool(
                 DATABASE_URL,
                 min_size=1,
-                max_size=5,
+                max_size=config.DB_POOL_MAX,
+                open=True,
                 kwargs={"row_factory": dict_row, "prepare_threshold": None},
             )
         return _pool
+
+
+def close_pool() -> None:
+    """Close the shared pool so interpreter shutdown does not raise from the pool's finalizer."""
+    global _pool
+    with _pool_lock:
+        if _pool is not None:
+            _pool.close()
+            _pool = None
+
+
+atexit.register(close_pool)
 
 
 def get_conn():
@@ -57,43 +91,59 @@ def init_db() -> None:
         migrate(conn)
 
 
-def find_staff_by_email(email: str) -> dict | None:
-    """Return the staff row with this email, or None."""
-    with get_conn() as conn:
-        row = conn.execute("SELECT * FROM staff WHERE email = %s", (email,)).fetchone()
-    return dict(row) if row else None
+_LM_COLS = "id, slug, name, category, number, map_x, map_y, outside_campus, floors"
 
 
 def upsert_landmarks(landmarks: list[dict]) -> None:
-    """Insert landmarks by name, skipping ones that already exist."""
+    """Insert landmarks keyed by slug (id in landmarks.json); existing ones are refreshed in place."""
+    rows = [
+        {"slug": lm["id"], "name": lm["name"], "category": lm.get("category", "place"), "number": lm.get("number"),
+         "map_x": lm.get("map_x"), "map_y": lm.get("map_y"), "outside": bool(lm.get("outside_campus")),
+         "floors": lm.get("floors") or []}
+        for lm in landmarks
+    ]
     with get_conn() as conn:
-        conn.cursor().executemany(
-            "INSERT INTO landmarks (name, lat, lng) VALUES (%(name)s, %(lat)s, %(lng)s)"
-            " ON CONFLICT (name) DO NOTHING",
-            landmarks,
-        )
+        cur = conn.cursor()
+        for r in rows:
+            updated = cur.execute(
+                "UPDATE landmarks SET name = %(name)s, category = %(category)s, number = %(number)s, map_x = %(map_x)s,"
+                " map_y = %(map_y)s, outside_campus = %(outside)s, floors = %(floors)s WHERE slug = %(slug)s",
+                r,
+            ).rowcount
+            if not updated:  # first load, or an older row created by name only
+                cur.execute(
+                    "INSERT INTO landmarks (slug, name, category, number, map_x, map_y, outside_campus, floors)"
+                    " VALUES (%(slug)s, %(name)s, %(category)s, %(number)s, %(map_x)s, %(map_y)s, %(outside)s, %(floors)s)"
+                    " ON CONFLICT (name) DO UPDATE SET slug = EXCLUDED.slug, category = EXCLUDED.category,"
+                    " number = EXCLUDED.number, map_x = EXCLUDED.map_x, map_y = EXCLUDED.map_y,"
+                    " outside_campus = EXCLUDED.outside_campus, floors = EXCLUDED.floors",
+                    r,
+                )
 
 
-def create_ticket(title: str, description: str, category: str, student_email: str) -> int:
-    """Insert a new ticket and return its id."""
-    raise NotImplementedError
+def list_landmarks() -> list[dict]:
+    """Return all landmarks ordered by number (places first), then name."""
+    with get_conn() as conn:
+        return conn.execute(f"SELECT {_LM_COLS} FROM landmarks ORDER BY number NULLS LAST, name").fetchall()
 
 
-def assign_ticket(ticket_id: int, staff_id: int) -> None:
-    """Assign a ticket to a staff member."""
-    raise NotImplementedError
+def get_landmark_by_name(name: str) -> dict | None:
+    """Return the landmark with this exact name, or None."""
+    with get_conn() as conn:
+        return conn.execute(f"SELECT {_LM_COLS} FROM landmarks WHERE name = %s", (name,)).fetchone()
 
 
-def add_status(ticket_id: int, status: str, changed_by: int | None = None) -> None:
-    """Update ticket status and record it in status_history."""
-    raise NotImplementedError
+def get_landmark_by_slug(slug: str) -> dict | None:
+    """Return the landmark with this slug (the id used in landmarks.json), or None."""
+    with get_conn() as conn:
+        return conn.execute(f"SELECT {_LM_COLS} FROM landmarks WHERE slug = %s", (slug,)).fetchone()
 
 
-def add_comment(ticket_id: int, author: str, body: str) -> None:
-    """Add a comment to a ticket."""
-    raise NotImplementedError
-
-
-def set_staff_online(staff_id: int, online: bool) -> None:
-    """Mark a staff member online or offline."""
-    raise NotImplementedError
+def ping() -> bool:
+    """Return True if the database answers a trivial query."""
+    try:
+        with get_conn() as conn:
+            conn.execute("SELECT 1")
+        return True
+    except Exception:
+        return False

@@ -1,8 +1,7 @@
 streamlit>=1.40
-folium
-streamlit-folium
 streamlit-autorefresh
 google-genai
+httpx
 groq
 python-dotenv
 psycopg[binary]

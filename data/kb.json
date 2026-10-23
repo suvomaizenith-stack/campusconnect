@@ -1,14 +1,133 @@
-[
-  {"topic": "wifi not working", "keywords": ["wifi", "wi-fi", "internet", "network"],
-   "answer": "Forget and reconnect to the campus Wi-Fi. If it still fails, I can raise a ticket with the IT team."},
-  {"topic": "water leakage", "keywords": ["leak", "leakage", "water", "pipe", "tap"],
-   "answer": "Please tell me the location of the leak and I'll raise a plumbing ticket."},
-  {"topic": "power cut", "keywords": ["power", "electricity", "light", "fan", "outage"],
-   "answer": "Share the building and room and I'll alert the electricity team."},
-  {"topic": "dirty washroom", "keywords": ["washroom", "toilet", "dirty", "clean", "restroom"],
-   "answer": "Sorry about that. Tell me which washroom and I'll notify housekeeping."},
-  {"topic": "track my ticket", "keywords": ["track", "status", "ticket", "update"],
-   "answer": "Share your ticket ID and I'll show its current status."},
-  {"topic": "how to complain", "keywords": ["complain", "complaint", "report", "how to"],
-   "answer": "Just describe your issue in the chat. I'll turn it into a ticket for the right team."}
-]
+{
+  "faq": [
+    {
+      "topic": "wifi not working",
+      "category": "internet",
+      "keywords": [
+        "wifi",
+        "wi-fi",
+        "internet",
+        "network",
+        "router",
+        "slow",
+        "connection"
+      ],
+      "answer": "Try forgetting the campus Wi-Fi network and reconnecting. Moving closer to an access point can also help.",
+      "keywords_hi": [
+        "वाईफाई",
+        "इंटरनेट",
+        "नेटवर्क"
+      ]
+    },
+    {
+      "topic": "water leakage",
+      "category": "plumbing",
+      "keywords": [
+        "leak",
+        "leakage",
+        "water",
+        "pipe",
+        "tap",
+        "drain",
+        "overflow"
+      ],
+      "answer": "If you can do it safely, close the nearest tap or valve to limit the water and keep the floor area dry.",
+      "keywords_hi": [
+        "पानी",
+        "लीक",
+        "टपक",
+        "नल"
+      ]
+    },
+    {
+      "topic": "power cut",
+      "category": "electricity",
+      "keywords": [
+        "power",
+        "electricity",
+        "light",
+        "fan",
+        "outage",
+        "switch",
+        "socket"
+      ],
+      "answer": "Please switch off and unplug anything connected to the affected socket and stay away from exposed wiring.",
+      "keywords_hi": [
+        "बिजली",
+        "पंखा",
+        "लाइट"
+      ]
+    },
+    {
+      "topic": "dirty washroom",
+      "category": "cleanliness",
+      "keywords": [
+        "washroom",
+        "toilet",
+        "dirty",
+        "clean",
+        "restroom",
+        "garbage",
+        "dustbin",
+        "smell"
+      ],
+      "answer": "Sorry about that. Please avoid the affected area until housekeeping has cleaned it.",
+      "keywords_hi": [
+        "गंदा",
+        "बदबू",
+        "सफाई",
+        "कचरा"
+      ]
+    },
+    {
+      "topic": "track my ticket",
+      "category": null,
+      "keywords": [
+        "track",
+        "status",
+        "ticket",
+        "update"
+      ],
+      "answer": "Open My Tickets to see the current status, ETA and history of your ticket.",
+      "keywords_hi": []
+    },
+    {
+      "topic": "how to complain",
+      "category": null,
+      "keywords": [
+        "complain",
+        "complaint",
+        "report",
+        "how to"
+      ],
+      "answer": "Describe your issue in plain words on the Report a Problem page. We turn it into a ticket for the right team.",
+      "keywords_hi": []
+    }
+  ],
+  "contacts": {
+    "helpdesk": {
+      "name": "Campus Helpdesk",
+      "phone": "0000-000-0000",
+      "hours": "Mon-Sat, 9 AM-5 PM",
+      "note": "PLACEHOLDER number - confirm with the university"
+    },
+    "security": {
+      "name": "Security Desk",
+      "phone": "0000-000-0000",
+      "hours": "24 x 7",
+      "note": "PLACEHOLDER number - confirm with the university"
+    },
+    "medical": {
+      "name": "Medical Room",
+      "phone": "0000-000-0000",
+      "hours": "Confirm with the university",
+      "note": "PLACEHOLDER number - confirm with the university"
+    },
+    "it_support": {
+      "name": "IT Support",
+      "phone": "0000-000-0000",
+      "hours": "Mon-Sat, 9 AM-5 PM",
+      "note": "PLACEHOLDER number - confirm with the university"
+    }
+  }
+}

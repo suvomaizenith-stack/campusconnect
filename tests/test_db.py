@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from config import DATABASE_URL
-from db.db import SCHEMA_PATH, find_staff_by_email, init_db
+from db.db import SCHEMA_PATH, init_db
+from db.users import get_staff_by_username
 
 SCHEMA = SCHEMA_PATH.read_text(encoding="utf-8")
 
@@ -27,4 +28,4 @@ def test_no_sqlite_placeholders_left():
 def test_init_is_idempotent_and_lookup_misses_cleanly():
     init_db()
     init_db()
-    assert find_staff_by_email("nobody@example.invalid") is None
+    assert get_staff_by_username("nobody-here") is None

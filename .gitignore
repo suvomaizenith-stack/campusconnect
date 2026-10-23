@@ -226,3 +226,6 @@ node_modules/
 package*.json
 *.db
 data/uploads/
+
+# Map component runtime copy of data/campus_map.png
+ui/map_component/campus_map.png
