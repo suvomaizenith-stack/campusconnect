@@ -1,0 +1,14 @@
+[
+  {"name": "Main Gate", "lat": 28.2700, "lng": 77.0665},
+  {"name": "Administrative Block", "lat": 28.2708, "lng": 77.0672},
+  {"name": "Central Library", "lat": 28.2715, "lng": 77.0676},
+  {"name": "Academic Block A", "lat": 28.2719, "lng": 77.0683},
+  {"name": "Academic Block B", "lat": 28.2723, "lng": 77.0689},
+  {"name": "Engineering Labs", "lat": 28.2726, "lng": 77.0677},
+  {"name": "Boys Hostel", "lat": 28.2705, "lng": 77.0692},
+  {"name": "Girls Hostel", "lat": 28.2698, "lng": 77.0685},
+  {"name": "Cafeteria", "lat": 28.2712, "lng": 77.0680},
+  {"name": "Sports Ground", "lat": 28.2730, "lng": 77.0668},
+  {"name": "Auditorium", "lat": 28.2716, "lng": 77.0661},
+  {"name": "Parking Area", "lat": 28.2702, "lng": 77.0655}
+]

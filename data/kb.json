@@ -1,0 +1,14 @@
+[
+  {"topic": "wifi not working", "keywords": ["wifi", "wi-fi", "internet", "network"],
+   "answer": "Forget and reconnect to the campus Wi-Fi. If it still fails, I can raise a ticket with the IT team."},
+  {"topic": "water leakage", "keywords": ["leak", "leakage", "water", "pipe", "tap"],
+   "answer": "Please tell me the location of the leak and I'll raise a plumbing ticket."},
+  {"topic": "power cut", "keywords": ["power", "electricity", "light", "fan", "outage"],
+   "answer": "Share the building and room and I'll alert the electricity team."},
+  {"topic": "dirty washroom", "keywords": ["washroom", "toilet", "dirty", "clean", "restroom"],
+   "answer": "Sorry about that. Tell me which washroom and I'll notify housekeeping."},
+  {"topic": "track my ticket", "keywords": ["track", "status", "ticket", "update"],
+   "answer": "Share your ticket ID and I'll show its current status."},
+  {"topic": "how to complain", "keywords": ["complain", "complaint", "report", "how to"],
+   "answer": "Just describe your issue in the chat. I'll turn it into a ticket for the right team."}
+]

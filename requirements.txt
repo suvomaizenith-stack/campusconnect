@@ -1,0 +1,6 @@
+streamlit>=1.35
+python-dotenv>=1.0
+folium>=0.16
+streamlit-folium>=0.20
+google-genai>=0.8
+groq>=0.9
