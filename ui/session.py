@@ -27,7 +27,10 @@ def logout() -> None:
             assignment.go_offline(user)
         except Exception:
             pass
+    theme = st.session_state.get("theme")
     st.session_state.clear()
+    if theme:
+        st.session_state["theme"] = theme
 
 
 def require_role(*roles: str) -> dict:

@@ -4,13 +4,12 @@ import streamlit as st
 from logic import cache, chat, map_data, mapfile, tickets, workflow
 from ui.mapview import campus_map, focus_on, outline
 from ui.session import require_role
-from ui.theme import chip, esc
+from ui.theme import category_chip, chip, esc, icon, meta, page_header
 
 AUTO = "Detect from my message"
 
 student = require_role("student")
-st.title("Report a problem")
-st.caption("Describe it the way you would tell a friend. We will create a ticket right away.")
+page_header("Report a problem", "What is going wrong?", "Describe it the way you would tell a friend. We will create a ticket right away.")
 
 landmarks = tickets.landmark_options()
 if not landmarks:
@@ -29,10 +28,10 @@ if st.session_state["rp_landmark"] not in by_name and st.session_state["rp_landm
 left, right = st.columns([3, 2], gap="large")
 
 with left:
-    st.markdown("##### 📍 Tap the spot on the map")
+    st.markdown(f"##### {icon('map-pin', 18)} Tap the spot on the map", unsafe_allow_html=True)
     pin_lm = mapfile.by_id(pin["landmark_id"]) if pin and pin["landmark_id"] else None
     click = campus_map(
-        "rp_map", mode="pick", pin=(pin["x"], pin["y"]) if pin else None, highlight=outline(pin_lm),
+        "rp_map", map_mode="pick", pin=(pin["x"], pin["y"]) if pin else None, highlight=outline(pin_lm),
         focus=st.session_state.get("rp_focus"), height=470,
     )
     if click:
@@ -47,7 +46,7 @@ with left:
     if pin:
         near = f" (about {pin['distance_m']} m away)" if pin["via"] in ("snap", "nearest") and pin["distance_m"] else ""
         st.success(f"Pin set: **{esc(pin['name'])}**{near}")
-        if st.button("Clear pin"):
+        if st.button("Clear pin", key="i_x__clearpin"):
             for k in ("rp_pin", "rp_focus"):
                 st.session_state.pop(k, None)
             st.session_state["rp_landmark"] = AUTO
@@ -93,7 +92,7 @@ with right:
         st.caption("We read: " + " · ".join(b for b in bits if b))
     photo = st.file_uploader("Photo (optional)", type=["jpg", "jpeg", "png", "webp"])
 
-    if st.button("Submit", type="primary"):
+    if st.button("Submit report", type="primary", key="i_send__submit", use_container_width=True):
         if not text.strip():
             st.warning("Please describe the problem first.")
         elif read and read["ambiguous"] and not final_slug:
@@ -116,18 +115,18 @@ with right:
 res = st.session_state.get("rp_result")
 if res:
     if st.session_state.pop("rp_new", False):
-        st.balloons()
+        st.toast("Ticket created.", icon=":material/check_circle:")
     st.divider()
     with st.container(border=True):
         st.markdown(f"### Ticket {esc(res['code'])} &nbsp; {chip(res['status'])}", unsafe_allow_html=True)
-        st.write(f"**{res['summary']}** · {res['category'].title()}")
+        st.markdown(f"**{esc(res['summary'])}** &nbsp; {category_chip(res['category'])}", unsafe_allow_html=True)
         loc = res.get("location") or {}
         place = ", ".join(str(v) for v in (loc.get("landmark"), loc.get("floor") and f"{loc['floor']} floor",
                                            loc.get("room") and f"room {loc['room']}") if v)
         if place:
-            st.write(f"📍 {place}")
-        who = f"Assigned to **{res['staff_name']}**." if res["staff_name"] else "Waiting for a staff member to come online."
-        st.write(f"{who} {res['eta_text']}")
+            st.markdown(meta("map-pin", place), unsafe_allow_html=True)
+        who = f"Assigned to {res['staff_name']}." if res["staff_name"] else "Waiting for a staff member to come online."
+        st.markdown(meta("user-check", res["eta_text"], who), unsafe_allow_html=True)
         if res["photo_note"]:
             st.caption(f"Photo: {res['photo_note']}")
 
@@ -135,16 +134,17 @@ if res:
         desk = map_data.service_panel("helpdesk")
         with st.container(border=True):
             st.markdown("**This looks like something the helpdesk handles**")
-            st.write("CampusConnect covers plumbing, electricity, cleanliness and internet. For this, please contact the helpdesk.")
+            st.write("Campus Saathi covers plumbing, electricity, cleanliness and internet. For this, please contact the helpdesk.")
             if desk and desk["contact"]:
-                st.write(f"☎️ {desk['contact'].get('phone', '')} · {desk['contact'].get('hours', '')}")
+                st.markdown(meta("phone", desk["contact"].get("phone", "")) + meta("clock", desk["contact"].get("hours", "")),
+                            unsafe_allow_html=True)
 
     reply = res.get("cache")
     if reply:
         with st.container(border=True):
             st.markdown("**We have seen this problem before**")
             st.write(reply["text"])
-            if reply["can_reopen"] and st.button("Still broken?"):
+            if reply["can_reopen"] and st.button("Still broken?", key="i_refresh-cw__reopen"):
                 cache.reopen_group(reply["group_id"], student)
                 st.session_state["rp_result"]["cache"] = cache.build_reply(reply["group_id"])
                 st.rerun()
@@ -152,7 +152,7 @@ if res:
         with st.container(border=True):
             st.markdown("**Something you can try while you wait**")
             st.write(res["self_help"])
-            if st.button("This solved it"):
+            if st.button("This solved it", key="i_circle-check__selfsolved"):
                 workflow.mark_self_resolved(res["ticket_id"], student)
                 st.session_state.pop("rp_result")
                 st.success("Great! We marked your ticket as solved. It stays in My Tickets.")
@@ -163,7 +163,7 @@ if res:
             st.write(res["follow_up_question"])
             with st.form("rp_answer", clear_on_submit=True):
                 answer = st.text_input("Your answer")
-                if st.form_submit_button("Send answer"):
+                if st.form_submit_button("Send answer", key="i_send__answer"):
                     if answer.strip():
                         chat.send_chat(res["ticket_id"], {"role": "student", "id": student["id"], "name": student["name"]}, answer)
                         st.session_state["rp_result"]["follow_up_question"] = None

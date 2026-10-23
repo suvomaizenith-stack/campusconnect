@@ -1,4 +1,4 @@
-"""Supabase Postgres helpers for CampusConnect. Connections come from a shared pool."""
+"""Supabase Postgres helpers for Campus Saathi. Connections come from a shared pool."""
 import atexit
 import threading
 from pathlib import Path

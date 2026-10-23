@@ -1,14 +1,26 @@
+[client]
+toolbarMode = "minimal"
+
 [theme]
-primaryColor = "#0E8A6D"
-font = "sans serif"
+font = "sans-serif"
+baseRadius = "0.6rem"
 
 [theme.light]
-backgroundColor = "#F7F9F8"
-secondaryBackgroundColor = "#EAF1EF"
-textColor = "#14201C"
+primaryColor = "#19191c"
+backgroundColor = "#f7f7f9"
+secondaryBackgroundColor = "#f0eff3"
+textColor = "#19191c"
+borderColor = "#e9e8ed"
 
 [theme.dark]
-primaryColor = "#2BC29B"
-backgroundColor = "#0F1715"
-secondaryBackgroundColor = "#16211E"
-textColor = "#E8F1EE"
+primaryColor = "#f3f05c"
+backgroundColor = "#131316"
+secondaryBackgroundColor = "#303037"
+textColor = "#f2f2f4"
+borderColor = "#34343b"
+
+[theme.sidebar]
+backgroundColor = "#19191c"
+secondaryBackgroundColor = "#222226"
+textColor = "#c9c9d0"
+primaryColor = "#f3f05c"

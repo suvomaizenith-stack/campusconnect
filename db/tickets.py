@@ -269,7 +269,7 @@ def department_metrics(category: str) -> dict:
     return {**counts, "avg_hours": float(counts["avg_hours"]), "per_day": [(r["day"], r["n"]) for r in per_day]}
 
 
-def add_system_message(ticket_id: int, body: str, sender_name: str = "CampusConnect Assistant") -> None:
+def add_system_message(ticket_id: int, body: str, sender_name: str = "Campus Saathi Assistant") -> None:
     """Post an assistant message (follow-up question, acknowledgement) to a ticket's chat."""
     with get_conn() as conn:
         conn.execute(

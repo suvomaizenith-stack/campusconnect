@@ -4,11 +4,11 @@ import streamlit as st
 from logic import map_data, mapfile, tickets
 from ui.mapview import campus_map, focus_on, outline
 from ui.session import require_role
-from ui.theme import chip, esc
+from ui.theme import category_chip, chip, empty_state, esc, icon, meta, page_header
 
 user = require_role("student", "staff")
 is_student = user["role"] == "student"
-st.title("Outage map")
+page_header("Outage map", "What is happening on campus", "Live problems on the map. Tap a numbered building, a road or a badge to see the details.")
 
 f1, f2 = st.columns([3, 2])
 cat = f1.radio("Category", ["All", "plumbing", "electricity", "cleanliness", "internet"], horizontal=True,
@@ -33,7 +33,7 @@ sel_lm = mapfile.by_id(sel["id"]) if sel and sel["kind"] == "landmark" else None
 
 left, right = st.columns([3, 2], gap="large")
 with left:
-    click = campus_map("om_map", overlay=overlay, mode="view", highlight=outline(sel_lm),
+    click = campus_map("om_map", overlay=overlay, map_mode="view", highlight=outline(sel_lm),
                        focus=st.session_state.get("om_focus"), height=560)
     if click:
         if click.get("badge"):
@@ -50,11 +50,11 @@ with left:
                 st.session_state["om_sel"] = {"kind": "landmark", "id": found["landmark_id"]}
         st.rerun()
     if not overlay["badges"]:
-        st.info("No active problems in this window. 🎉")
+        empty_state("No active problems in this window", "Everything looks fine here. Try a longer time window.", "party-popper")
 
     with st.expander("Index"):
         for e in map_data.index_with_counts(hours, category):
-            num = f"{e['number']}. " if e["number"] else "• "
+            num = f"{e['number']}. " if e["number"] else "- "
             badge = f" — **{e['count']} open**" if e["count"] else ""
             st.markdown(f"{num}{esc(e['name'])}{badge}", unsafe_allow_html=True)
 
@@ -63,8 +63,8 @@ def me_too_button(group_id: int, already: bool, resolved: bool, key: str) -> Non
     if not is_student or resolved:
         return
     if already:
-        st.button("✅ You reported this", key=key, disabled=True)
-    elif st.button("I face this too", key=key, type="primary"):
+        st.button("You reported this", key=f"i_circle-check__{key}", disabled=True)
+    elif st.button("I face this too", key=f"i_hand-heart__{key}", type="primary"):
         student = {"id": user["id"], "name": user["name"], "roll": user["roll"]}
         if tickets.say_me_too(student, group_id):
             st.toast("Thanks! Your report was added.")
@@ -80,7 +80,7 @@ with right:
             st.markdown(f"### {esc(p['name'])}" if p else "### Service", unsafe_allow_html=True)
             c = p and p["contact"]
             if c:
-                st.write(f"☎️ {c['phone']}  \n🕘 {c['hours']}")
+                st.markdown(meta("phone", c["phone"]) + meta("clock", c["hours"]), unsafe_allow_html=True)
                 if c.get("note"):
                     st.caption(c["note"])
             else:
@@ -93,10 +93,10 @@ with right:
             with st.container(border=True):
                 st.markdown(f"### {esc(p['title'])}", unsafe_allow_html=True)
                 st.markdown(f"{chip('resolved' if p['resolved'] else p['status'])} &nbsp; {chip(p['level'])}", unsafe_allow_html=True)
-                st.write(f"📍 {p['location']} · {p['category'].title()}")
-                st.write(f"👥 {p['report_count']} report{'s' if p['report_count'] != 1 else ''} · first reported "
-                         f"{p['first_reported_ago']} ({p['first_reported']})")
-                st.write(p["eta_text"])
+                st.markdown(meta("map-pin", p["location"]) + f'<div class="cc-meta">{category_chip(p["category"])}</div>'
+                            + meta("users", f"{p['report_count']} report{'s' if p['report_count'] != 1 else ''} · first reported "
+                                   f"{p['first_reported_ago']} ({p['first_reported']})")
+                            + meta("clock", p["eta_text"]), unsafe_allow_html=True)
                 me_too_button(sel["id"], p["already_reported"], p["resolved"], f"mt_{sel['id']}")
     else:
         p = map_data.landmark_panel(sel["id"], hours, category, user["id"] if is_student else None)
@@ -108,7 +108,7 @@ with right:
                 st.markdown(f"### {head}{esc(p['name'])}", unsafe_allow_html=True)
                 st.caption(f"{p['open']} open · {p['resolved']} recently resolved")
                 if p["open"] == 0 and p["resolved"] == 0:
-                    st.success("No problems reported here.")
+                    empty_state("No problems reported here", "", "circle-check")
                 for fl in p["floors"]:
                     if not fl["issues"] and len(p["floors"]) > 1:
                         continue
@@ -117,6 +117,6 @@ with right:
                     for i in fl["issues"]:
                         with st.container(border=True):
                             st.markdown(f"**{esc(i['title'])}**  \n{chip('resolved' if i['resolved'] else i['level'])} "
-                                        f"{i['category'].title()} · {i['count']} report{'s' if i['count'] != 1 else ''}",
-                                        unsafe_allow_html=True)
+                                        f"{category_chip(i['category'])} &nbsp; {icon('users', 14)} "
+                                        f"{i['count']} report{'s' if i['count'] != 1 else ''}", unsafe_allow_html=True)
                             me_too_button(i["group_id"], i["already_reported"], i["resolved"], f"mt_{i['group_id']}")

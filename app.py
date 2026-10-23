@@ -1,13 +1,14 @@
-"""CampusConnect entry point: theme, one-time DB setup, role-based navigation, staff alert bar."""
+"""Campus Saathi entry point: theme, one-time DB setup, role-based navigation, staff alert bar."""
 import streamlit as st
 
 from ai.llm import get_ai_status
 from logic import views
 from logic.setup import bootstrap
+from ui.icons import icon
 from ui.session import current_user, logout
-from ui.theme import banner, esc, inject_css
+from ui.theme import banner, brand, inject_css, theme_toggle, user_card
 
-st.set_page_config(page_title="CampusConnect", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="Campus Saathi", page_icon=":material/school:", layout="wide")
 
 
 @st.cache_resource
@@ -24,28 +25,41 @@ inject_css()
 _error = _boot()
 if _error:
     _boot.clear()
-    st.error("CampusConnect cannot reach its database right now. Check DATABASE_URL in .env and try again.")
+    st.error("Campus Saathi cannot reach its database right now. Check DATABASE_URL in .env and try again.")
     st.caption(f"Technical detail: {_error}")
     st.stop()
 
 # TODO (post-MVP): voice notes, Telegram intake, staff-to-staff channels, drafts, learned ETA.
-HOME = st.Page("pages/0_Home.py", title="Home", icon="🏠", default=True)
-REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem", icon="📝")
-TICKETS = st.Page("pages/2_My_Tickets.py", title="My Tickets", icon="🎫")
-DASH = st.Page("pages/3_Staff_Dashboard.py", title="Dashboard", icon="🛠️")
-MAP = st.Page("pages/4_Outage_Map.py", title="Outage Map", icon="🗺️")
+HOME = st.Page("pages/0_Home.py", title="Home", default=True)
+REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem")
+TICKETS = st.Page("pages/2_My_Tickets.py", title="My Tickets")
+DASH = st.Page("pages/3_Staff_Dashboard.py", title="Dashboard")
+MAP = st.Page("pages/4_Outage_Map.py", title="Outage Map")
 ROLE_PAGES = {None: [HOME], "student": [HOME, REPORT, TICKETS, MAP], "staff": [HOME, DASH, MAP]}
+NAV_ICONS = {HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DASH: "layout-dashboard", MAP: "map"}
 
 user = current_user()
-nav = st.navigation(ROLE_PAGES[user["role"] if user else None])
+pages = ROLE_PAGES[user["role"] if user else None]
+nav = st.navigation(pages, position="hidden")
 
 with st.sidebar:
-    st.markdown('<div class="cc-brand">🎓 CampusConnect</div>', unsafe_allow_html=True)
+    st.markdown(brand(), unsafe_allow_html=True)
+    if len(pages) > 1:
+        st.markdown('<div class="cc-side-label">MENU</div>', unsafe_allow_html=True)
+    for i, page in enumerate(pages):
+        with st.container(key=f"i_{NAV_ICONS[page]}__nav{i}"):
+            st.page_link(page, label=page.title)
+    if not user:
+        st.markdown(
+            f'<div class="cc-side-note"><b>{icon("shield-check", 15)}Sign in to begin</b>'
+            "<p>Students report problems and track them. Staff manage their department's tickets.</p></div>",
+            unsafe_allow_html=True,
+        )
 
 
 @st.fragment(run_every=15)
 def _staff_alert_bar(staff: dict) -> None:
-    """Red banner for open alerts, a toast for new ones, and the AI status chip."""
+    """Banner for open alerts, a toast for new ones, and the AI status note."""
     try:
         alerts = views.open_alerts(None if staff.get("is_admin") else staff["department"])
     except Exception:
@@ -54,12 +68,21 @@ def _staff_alert_bar(staff: dict) -> None:
     for a in alerts:
         if a["id"] not in seen:
             seen.add(a["id"])
-            st.toast(a["message"], icon="🚨" if a["level"] == "critical" else "⚠️")
+            st.toast(a["message"], icon=":material/warning:")
     for a in alerts[:3]:
         banner(a["message"], "critical" if a["level"] == "critical" else "hotspot")
     if get_ai_status() == "degraded":
         st.caption("AI status: degraded (using backup rules)")
 
+
+with st.container(key="topbar"):
+    crumb, switch = st.columns([14, 1], vertical_alignment="center")
+    crumb.markdown(
+        '<div class="cc-crumb"><small>CAMPUS SAATHI &nbsp;/&nbsp; <b>KR MANGALAM UNIVERSITY</b></small></div>',
+        unsafe_allow_html=True,
+    )
+    with switch:
+        theme_toggle()
 
 if user and user["role"] == "staff":
     _staff_alert_bar(user)
@@ -70,12 +93,10 @@ if user:
             role = f"Student · {user['roll']}"
         else:
             role = "Admin · all departments" if user.get("is_admin") else user["department"].title() + " staff"
-        st.markdown(
-            f'<div class="cc-user"><b>{esc(user["name"])}</b><div class="role">{esc(role)}</div></div>',
-            unsafe_allow_html=True,
-        )
-        if st.button("Log out"):
-            logout()
-            st.rerun()
+        st.markdown(user_card(user["name"], role), unsafe_allow_html=True)
+        with st.container(key="i_log-out__logout"):
+            if st.button("Log out", use_container_width=True):
+                logout()
+                st.rerun()
 
 nav.run()

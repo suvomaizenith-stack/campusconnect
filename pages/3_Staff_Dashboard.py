@@ -4,7 +4,7 @@ import streamlit as st
 import config
 from logic import assignment, chat, priority, views, workflow
 from ui.session import require_role
-from ui.theme import banner, chip, esc, metric_card, timeline
+from ui.theme import banner, chip, empty_state, esc, meta, page_header, section_head, stat_row, timeline
 
 staff = require_role("staff")
 is_admin = bool(staff.get("is_admin"))
@@ -20,7 +20,9 @@ def flash(msg: str, error: bool = False) -> None:
 
 
 head, toggle_col = st.columns([4, 1])
-head.title("All departments" if is_admin else f"{staff['department'].title()} dashboard")
+with head:
+    page_header("Staff dashboard", "All departments" if is_admin else f"{staff['department'].title()} desk",
+                "Every ticket in your queue, with the tools to assign, update and close them.")
 online_now = views.is_online(staff["id"])
 with toggle_col:
     online = st.toggle("Online", value=online_now, key="online_toggle")
@@ -41,12 +43,13 @@ for r in views.recurring(staff):
     banner(r["message"], "critical" if r["level"] == "red" else "hotspot")
 
 m = views.staff_metrics(staff)
-cards = st.columns(5)
-for col, (label, key, accent) in zip(cards, [("New", "new", "info"), ("Needs info", "needs_info", "warn"),
-                                              ("In progress", "in_progress", "info"), ("Resolved today", "resolved_today", "ok"),
-                                              ("Overdue", "overdue", "bad")]):
-    with col:
-        metric_card(label, m[key], accent)
+stat_row([
+    {"label": "New", "value": m["new"], "icon": "inbox", "featured": True},
+    {"label": "Needs info", "value": m["needs_info"], "icon": "message-circle", "color": "amber"},
+    {"label": "In progress", "value": m["in_progress"], "icon": "wrench", "color": "violet"},
+    {"label": "Resolved today", "value": m["resolved_today"], "icon": "circle-check", "color": "green"},
+    {"label": "Overdue", "value": m["overdue"], "icon": "timer", "color": "red"},
+])
 
 reviews = views.duplicate_reviews(staff)
 tab_tickets, tab_dups, tab_alerts, tab_insights = st.tabs(
@@ -84,7 +87,7 @@ def staff_chat(ticket: dict) -> None:
         q2.radio("Language", ["English", "हिन्दी"], key=lang_key, horizontal=False, on_change=fill,
                  index=1 if ticket.get("language") == "hi" else 0)
     st.text_area("Message", key=box, height=90)
-    if st.button("Send", key=f"send_{tid}"):
+    if st.button("Send", key=f"i_send__send{tid}"):
         body = st.session_state.get(box, "")
         if not body.strip():
             st.warning("Type a reply first.")
@@ -115,7 +118,7 @@ def detail_panel(ticket_id: int) -> None:
         if not t["info_complete"]:
             st.info(f"Waiting for the student's answer: {t['follow_up_question']}")
         if d["group"] and d["group"]["report_count"] > 1:
-            st.write(f"👥 {d['group']['report_count']} students reported this problem.")
+            st.markdown(meta("users", f"{d['group']['report_count']} students reported this problem."), unsafe_allow_html=True)
         if d["photo"]:
             st.image(d["photo"][0], caption=t["photo_note"] or "Photo from the student")
         st.write(f"Assigned to: **{t['staff_name'] or 'nobody yet'}** · {t['eta_text']}")
@@ -135,7 +138,7 @@ def detail_panel(ticket_id: int) -> None:
             tiers = list(priority.TIER_ORDER)
             new_tier = o2.selectbox("Urgency", tiers, index=tiers.index(t["tier"]),
                                     format_func=lambda x: config.URGENCY_LABELS[x], key=f"otier_{ticket_id}")
-            if st.button("Apply changes", key=f"ovr_{ticket_id}"):
+            if st.button("Apply changes", key=f"i_check__ovr{ticket_id}"):
                 try:
                     workflow.override_category(ticket_id, new_cat, staff)
                     workflow.override_urgency(ticket_id, new_tier, staff)
@@ -145,11 +148,11 @@ def detail_panel(ticket_id: int) -> None:
                 st.rerun()
 
         b1, b2 = st.columns(2)
-        if b1.button("Assign to me", key=f"take_{ticket_id}", disabled=t["assigned_to"] == staff["id"]):
+        if b1.button("Assign to me", key=f"i_user-check__take{ticket_id}", disabled=t["assigned_to"] == staff["id"]):
             err = assignment.assign_to_me(t, staff)
             flash(err or "Assigned to you.", bool(err))
             st.rerun()
-        if b2.button("Auto-assign", key=f"auto_{ticket_id}"):
+        if b2.button("Auto-assign", key=f"i_sparkles__auto{ticket_id}"):
             err = assignment.auto_assign(t, staff)
             flash(err or "Assigned automatically.", bool(err))
             st.rerun()
@@ -158,7 +161,7 @@ def detail_panel(ticket_id: int) -> None:
             with st.form(f"assign_{ticket_id}"):
                 who = st.selectbox("Assign / reassign to", list(team),
                                    index=list(team.values()).index(t["assigned_to"]) if t["assigned_to"] in team.values() else 0)
-                if st.form_submit_button("Assign"):
+                if st.form_submit_button("Assign", key=f"i_user-check__assign{ticket_id}"):
                     err = assignment.reassign(t, team[who], by)
                     flash(err or f"Assigned to {who}.", bool(err))
                     st.rerun()
@@ -168,7 +171,7 @@ def detail_panel(ticket_id: int) -> None:
             status = st.selectbox("Update status", options, index=options.index(t["status"]) if t["status"] in options else 0,
                                   format_func=lambda s: s.replace("_", " ").title())
             note = st.text_input("Note (the student sees it; required to resolve or move backwards)", max_chars=300)
-            if st.form_submit_button("Save update", type="primary"):
+            if st.form_submit_button("Save update", type="primary", key=f"i_check__status{ticket_id}"):
                 try:
                     workflow.set_status(ticket_id, status, note, staff)
                     flash("Status updated.")
@@ -177,7 +180,7 @@ def detail_panel(ticket_id: int) -> None:
                 st.rerun()
         with st.form(f"inote_{ticket_id}", clear_on_submit=True):
             inote = st.text_input("Internal note (staff only)", max_chars=300)
-            if st.form_submit_button("Add internal note"):
+            if st.form_submit_button("Add internal note", key=f"i_sticky-note__inote{ticket_id}"):
                 try:
                     workflow.add_internal_note(ticket_id, inote, staff)
                     flash("Internal note added.")
@@ -186,7 +189,7 @@ def detail_panel(ticket_id: int) -> None:
                 st.rerun()
 
         st.markdown("**Progress**")
-        timeline([{"label": ("🔒 " if h["internal"] else "") + h["status"].replace("_", " ").title(), "detail": h["note"],
+        timeline([{"label": h["status"].replace("_", " ").title(), "internal": bool(h["internal"]), "detail": h["note"],
                    "when": f"{h['when']} · {h['changed_by'] or ''}"} for h in d["timeline"]])
         st.markdown("**Chat**")
         staff_chat(t)
@@ -207,7 +210,7 @@ with tab_tickets:
     left, right = st.columns([2, 3], gap="large")
     with left:
         if not rows:
-            st.success("Nothing matches these filters. 🎉")
+            empty_state("Nothing matches these filters", "Try a different status or clear the search.", "party-popper")
         for t in rows:
             with st.container(border=True):
                 st.markdown(f"{chip(t['tier'], t['urgency_label'])} &nbsp; **{esc(t['code'])}** {esc(t['title'])}",
@@ -220,7 +223,7 @@ with tab_tickets:
                 st.caption(" · ".join(bits))
                 if t["overdue"]:
                     st.markdown(f":red[{t['overdue']}]")
-                if st.button("Open", key=f"open_{t['id']}"):
+                if st.button("Open", key=f"i_arrow-right__open{t['id']}"):
                     st.session_state["sel_ticket"] = t["id"]
     with right:
         sel = st.session_state.get("sel_ticket")
@@ -231,7 +234,7 @@ with tab_tickets:
 
 with tab_dups:
     if not reviews:
-        st.success("No possible duplicates to review.")
+        empty_state("No possible duplicates to review", "New reports that look like existing ones will appear here.", "git-merge")
     for r in reviews:
         t, p = r["ticket"], r["primary"]
         with st.container(border=True):
@@ -244,11 +247,11 @@ with tab_dups:
                     st.caption(f"{tk['landmark'] or 'Campus'}" + (f", {tk['floor']} floor" if tk["floor"] else "")
                                + f" · {tk['student_name']}")
             a, b, _ = st.columns([1, 1, 3])
-            if a.button("Confirm duplicate", key=f"cf_{t['id']}", type="primary"):
+            if a.button("Confirm duplicate", key=f"i_git-merge__cf{t['id']}", type="primary"):
                 workflow.confirm_duplicate(t["id"], staff)
                 flash(f"{t['code']} marked as a duplicate of {p['code']}. The student was told.")
                 st.rerun()
-            if b.button("Not a duplicate", key=f"sp_{t['id']}"):
+            if b.button("Not a duplicate", key=f"i_undo-2__sp{t['id']}"):
                 workflow.separate_duplicate(t["id"], staff)
                 flash(f"{t['code']} is now its own issue.")
                 st.rerun()
@@ -256,15 +259,16 @@ with tab_dups:
 with tab_alerts:
     alerts = views.open_alerts(None if is_admin else staff["department"])
     if not alerts:
-        st.success("No open alerts.")
+        empty_state("No open alerts", "Hotspots and critical issues will show up here.", "bell")
     for a in alerts:
         banner(f"{a['message']} ({a['age']})", "critical" if a["level"] == "critical" else "hotspot")
-        if st.button("Acknowledge", key=f"ack_{a['id']}"):
+        if st.button("Acknowledge", key=f"i_check__ack{a['id']}"):
             views.acknowledge_alert(a["id"], staff)
             st.rerun()
-    st.markdown("**Team**")
+    section_head("Team", "Who is online")
     for s in views.staff_directory(None if is_admin else staff["department"]):
-        st.write(f"{'🟢' if s['is_online'] else '⚪'} {s['name']} · {config.CATEGORY_LABELS.get(s['department'], s['department'])}")
+        st.markdown(f"{chip('confirmed', 'Online') if s['is_online'] else chip('later', 'Offline')} &nbsp; {esc(s['name'])} · "
+                    f"{esc(config.CATEGORY_LABELS.get(s['department'], s['department']))}", unsafe_allow_html=True)
 
 with tab_insights:
     ins = views.insights(staff)

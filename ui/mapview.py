@@ -7,9 +7,15 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from logic import mapfile
+from ui.icons import icon
+from ui.theme import mode
 
 _DIR = Path(__file__).resolve().parent / "map_component"
 _component = components.declare_component("campus_map", path=str(_DIR))
+
+
+_SERVICE_ICONS = {"helpdesk": "headset", "security": "shield-check", "medical": "stethoscope", "it_support": "laptop",
+                  "info": "info", "check": "check", "locate-fixed": "locate-fixed"}
 
 
 def _sync_image() -> None:
@@ -31,19 +37,20 @@ def focus_on(landmark: dict | None, zoom: float = 2.2) -> dict | None:
     return {"x": landmark["map_x"], "y": landmark["map_y"], "zoom": zoom, "seq": time.time_ns()}
 
 
-def campus_map(key: str, overlay: dict | None = None, mode: str = "view", pin: tuple[float, float] | None = None,
+def campus_map(key: str, overlay: dict | None = None, map_mode: str = "view", pin: tuple[float, float] | None = None,
                highlight: list | None = None, focus: dict | None = None, height: int = 560) -> dict | None:
     """Draw the map and return a NEW click as {nx, ny, scale, badge?} or None.
 
-    mode: 'view' (browse) or 'pick' (crosshair + hint to drop a pin). Clicks repeat on every rerun, so they are
+    map_mode: 'view' (browse) or 'pick' (crosshair + hint to drop a pin). Clicks repeat on every rerun, so they are
     de-duplicated by their sequence number here.
     """
     _sync_image()
     m = mapfile.meta()
     value = _component(
-        key=key, overlay=overlay or {"badges": [], "issues": [], "services": []}, mode=mode,
+        key=key, overlay=overlay or {"badges": [], "issues": [], "services": []}, mode=map_mode,
         pin={"x": pin[0], "y": pin[1]} if pin else None, outline=highlight or [], focus=focus, height=height,
-        width_px=m["width_px"], height_px=m["height_px"], default=None,
+        width_px=m["width_px"], height_px=m["height_px"], theme=mode(),
+        icons={k: icon(v, 16, 2.2) for k, v in _SERVICE_ICONS.items()}, default=None,
     )
     if not value:
         return None

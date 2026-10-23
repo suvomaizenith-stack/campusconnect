@@ -1,4 +1,4 @@
-# CampusConnect
+# Campus Saathi
 
 AI complaint-to-ticket system for K.R. Mangalam University, Gurugram. Students describe
 a problem in chat; the AI turns it into a ticket routed to the right department. Staff
