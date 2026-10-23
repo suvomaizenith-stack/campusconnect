@@ -6,9 +6,17 @@ from logic import cache, chat, map_data, mapfile, safety, tickets, workflow
 from ui.mapview import campus_map, focus_on, outline
 from ui.session import require_role
 from ui.theme import category_chip, chip, esc, icon, meta, page_header
+from ui.voice import voice_input
 
 AUTO = "Detect from my message"
+VOICE_KEY = "rp_voice"
 CATEGORY_BY_LABEL = {config.CATEGORY_LABELS[c]: c for c in config.CATEGORIES}
+
+
+def add_spoken_text() -> None:
+    said = getattr(st.session_state.get(VOICE_KEY), "transcript", None)
+    if said:
+        st.session_state["rp_text"] = f"{st.session_state.get('rp_text', '')} {said}".strip()[:2000]
 
 student = require_role("student")
 page_header("Report a problem", "What is going wrong?", "Describe it the way you would tell a friend. We will create a ticket right away.")
@@ -62,8 +70,9 @@ with left:
         st.caption("Optional, but it helps staff find the place faster. Drag to move, scroll or pinch to zoom.")
 
 with right:
-    text = st.text_area("What is the problem?", height=130, max_chars=2000,
+    text = st.text_area("What is the problem?", height=130, max_chars=2000, key="rp_text",
                         placeholder="e.g. the tap near the water cooler on B block 2nd floor keeps leaking")
+    voice_input(VOICE_KEY, add_spoken_text)
     if safety.is_safety_report(text):
         with st.container(border=True):
             st.markdown(f"**{icon('triangle-alert', 16)} If someone is hurt or in danger, contact them now**",

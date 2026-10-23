@@ -5,6 +5,8 @@ import json
 from datetime import timedelta
 from pathlib import Path
 
+import streamlit as st
+
 import config
 from db import groups as gdb
 from db import tickets as tdb
@@ -161,9 +163,10 @@ def staff_metrics(staff: dict) -> dict:
     return {**counts, "overdue": overdue}
 
 
-def recurring(staff: dict) -> list[dict]:
-    """Recurring-problem banners for the staff member's scope (yellow at 3, red at 5 in 7 days)."""
-    return alert_logic.recurring_banners(scope(staff))
+@st.cache_data(ttl=60)
+def recurring(category: str | None) -> list[dict]:
+    """Recurring-problem banners for a category, or all when None. Cached a minute: these change slowly."""
+    return alert_logic.recurring_banners(category)
 
 
 def duplicate_reviews(staff: dict) -> list[dict]:
@@ -195,7 +198,11 @@ def ticket_detail(ticket_id: int) -> dict | None:
 
 def insights(staff: dict) -> dict:
     """Insights tab data: {by_category, top_locations, avg_resolution}. Staff see their own category; admin sees all."""
-    cat = scope(staff)
+    return _insights(scope(staff))
+
+
+@st.cache_data(ttl=60)
+def _insights(cat: str | None) -> dict:
     by_cat = [r for r in tdb.tickets_by_category(7) if not cat or r["category"] == cat]
     avg = [r for r in tdb.avg_resolution_by_category() if not cat or r["category"] == cat]
     return {"by_category": by_cat, "top_locations": tdb.top_locations(7, 5), "avg_resolution": avg}
@@ -224,7 +231,11 @@ def is_online(staff_id: int) -> bool:
 
 def analytics(staff: dict) -> dict:
     """Analytics page data for the staff member's scope: 14-day daily volume, this week against last week, resolution, repeat places."""
-    cat = scope(staff)
+    return _analytics(scope(staff))
+
+
+@st.cache_data(ttl=60)
+def _analytics(cat: str | None) -> dict:
     daily = tdb.daily_volume(14, cat)
     week = tdb.window_summary(7, cat)
     repeats = {r["landmark_id"] for r in tdb.recurring_locations(7, 2) if not cat or r["category"] == cat}

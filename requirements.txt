@@ -6,4 +6,5 @@ python-dotenv
 psycopg[binary]
 psycopg-pool
 Pillow
+qrcode
 pytest

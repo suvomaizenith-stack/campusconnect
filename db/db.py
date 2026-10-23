@@ -80,8 +80,7 @@ def get_conn():
 
 def migrate(conn) -> None:
     """Add columns that are missing from the base schema. Safe to run repeatedly."""
-    for ddl in ADDED_COLUMNS:
-        conn.execute(ddl)
+    conn.execute(";\n".join(ADDED_COLUMNS))
 
 
 def init_db() -> None:
@@ -94,6 +93,13 @@ def init_db() -> None:
 _LM_COLS = "id, slug, name, category, number, map_x, map_y, outside_campus, floors"
 
 
+_LANDMARK_FIELDS = ("name", "category", "number", "map_x", "map_y", "outside", "floors")
+
+
+def _same_landmark(stored: dict | None, row: dict) -> bool:
+    return stored is not None and all(stored[f] == row[f] for f in _LANDMARK_FIELDS)
+
+
 def upsert_landmarks(landmarks: list[dict]) -> None:
     """Insert landmarks keyed by slug (id in landmarks.json); existing ones are refreshed in place."""
     rows = [
@@ -103,8 +109,13 @@ def upsert_landmarks(landmarks: list[dict]) -> None:
         for lm in landmarks
     ]
     with get_conn() as conn:
+        stored = {r["slug"]: r for r in conn.execute(
+            "SELECT slug, name, category, number, map_x, map_y, outside_campus AS outside, floors FROM landmarks").fetchall()}
+        changed = [r for r in rows if not _same_landmark(stored.get(r["slug"]), r)]
+        if not changed:
+            return
         cur = conn.cursor()
-        for r in rows:
+        for r in changed:
             updated = cur.execute(
                 "UPDATE landmarks SET name = %(name)s, category = %(category)s, number = %(number)s, map_x = %(map_x)s,"
                 " map_y = %(map_y)s, outside_campus = %(outside)s, floors = %(floors)s WHERE slug = %(slug)s",

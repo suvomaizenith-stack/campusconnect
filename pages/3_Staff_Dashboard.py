@@ -44,7 +44,7 @@ if "flash" in st.session_state:
     (st.error if is_err else st.success)(msg)
 
 if settings_logic.load()["recurring_banners"]:
-    for r in views.recurring(staff):
+    for r in views.recurring(views.scope(staff)):
         banner(r["message"], "critical" if r["level"] == "red" else "hotspot")
 
 m = views.staff_metrics(staff)

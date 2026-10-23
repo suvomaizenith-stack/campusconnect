@@ -11,7 +11,7 @@ from ui.theme import banner, brand, inject_css, theme_toggle, user_card
 st.set_page_config(page_title="Campus Saathi", page_icon=":material/school:", layout="wide")
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def _boot() -> str | None:
     """Create tables and load landmarks once per server process. Returns an error message or None."""
     try:
@@ -31,7 +31,7 @@ if _error:
 
 # TODO (post-MVP): voice notes, Telegram intake, staff-to-staff channels, drafts, learned ETA.
 HOME = st.Page("pages/0_Home.py", title="Home", default=True)
-REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem")
+REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem", url_path="report")
 TICKETS = st.Page("pages/2_My_Tickets.py", title="My Tickets")
 DASH = st.Page("pages/3_Staff_Dashboard.py", title="Dashboard")
 MAP = st.Page("pages/4_Outage_Map.py", title="Outage Map")

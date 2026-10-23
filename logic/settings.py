@@ -1,4 +1,6 @@
 """Admin settings saved in the database. If the table or database is unavailable, config.py defaults apply."""
+import streamlit as st
+
 import config
 from db import settings as sdb
 
@@ -20,6 +22,7 @@ def _parse(key: str, raw: str):
     return raw == "true"
 
 
+@st.cache_data(ttl=30)
 def load() -> dict:
     try:
         stored = sdb.all_settings()
@@ -36,3 +39,4 @@ def save(key: str, value, updated_by: str) -> None:
     else:
         text = "true" if value else "false"
     sdb.put_setting(key, text, updated_by)
+    load.clear()
