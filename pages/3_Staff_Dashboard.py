@@ -86,15 +86,21 @@ def staff_chat(ticket: dict) -> None:
         q1.selectbox("Quick reply", [""] + list(by_label), key=pick_key, on_change=fill)
         q2.radio("Language", ["English", "हिन्दी"], key=lang_key, horizontal=False, on_change=fill,
                  index=1 if ticket.get("language") == "hi" else 0)
-    st.text_area("Message", key=box, height=90)
-    if st.button("Send", key=f"i_send__send{tid}"):
+    err = f"scerr_{tid}"
+
+    def send() -> None:
         body = st.session_state.get(box, "")
         if not body.strip():
-            st.warning("Type a reply first.")
-        else:
-            chat.send_chat(tid, viewer, body)
-            st.session_state[box] = ""
-            st.rerun(scope="fragment")
+            st.session_state[err] = True
+            return
+        chat.send_chat(tid, viewer, body)
+        st.session_state[box] = ""
+        st.session_state.pop(err, None)
+
+    st.text_area("Message", key=box, height=90)
+    st.button("Send", key=f"i_send__send{tid}", on_click=send)
+    if st.session_state.pop(err, False):
+        st.warning("Type a reply first.")
 
 
 def detail_panel(ticket_id: int) -> None:
