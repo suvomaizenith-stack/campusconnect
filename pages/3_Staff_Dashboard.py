@@ -23,22 +23,8 @@ def flash(msg: str, error: bool = False) -> None:
     st.session_state["flash"] = (msg, error)
 
 
-head, toggle_col = st.columns([4, 1])
-with head:
-    page_header("Staff dashboard", "All departments" if is_admin else f"{staff['department'].title()} desk",
-                "Every ticket in your queue, with the tools to assign, update and close them.")
-online_now = views.is_online(staff["id"])
-with toggle_col:
-    online = st.toggle("Online", value=online_now, key="online_toggle")
-if online != online_now:
-    if online:
-        n = assignment.go_online(staff)
-        st.toast(f"You are online. {n} waiting ticket{'s' if n != 1 else ''} assigned to you." if n else "You are online.")
-    else:
-        assignment.go_offline(staff)
-        st.toast("You are offline. New tickets will not be assigned to you.")
-if not online:
-    st.info("You are offline. Go online to receive tickets.")
+page_header("Staff dashboard", "All departments" if is_admin else f"{staff['department'].title()} desk",
+            "Every ticket in your queue, with the tools to assign, update and close them.")
 if "flash" in st.session_state:
     msg, is_err = st.session_state.pop("flash")
     (st.error if is_err else st.success)(msg)
@@ -293,10 +279,10 @@ with tab_alerts:
         if st.button("Acknowledge", key=f"i_check__ack{a['id']}"):
             views.acknowledge_alert(a["id"], staff)
             st.rerun()
-    section_head("Team", "Who is online")
+    section_head("Team", "Staff on duty")
     for s in views.staff_directory(None if is_admin else staff["department"]):
-        st.markdown(f"{chip('confirmed', 'Online') if s['is_online'] else chip('later', 'Offline')} &nbsp; {esc(s['name'])} · "
-                    f"{esc(config.CATEGORY_LABELS.get(s['department'], s['department']))}", unsafe_allow_html=True)
+        st.markdown(f"{esc(s['name'])} · {esc(config.CATEGORY_LABELS.get(s['department'], s['department']))}",
+                    unsafe_allow_html=True)
 
 with tab_insights:
     ins = views.insights(staff)

@@ -40,7 +40,7 @@ def list_staff() -> list[dict]:
     """Return all staff (without secrets), ordered by department."""
     with get_conn() as conn:
         return conn.execute(
-            "SELECT id, username, name, department, role, is_online FROM staff ORDER BY department, name"
+            "SELECT id, username, name, department, role FROM staff ORDER BY department, name"
         ).fetchall()
 
 
@@ -91,7 +91,3 @@ def is_locked(table: str, user_id: int) -> bool:
     return bool(row and row["locked"])
 
 
-def set_staff_online(staff_id: int, online: bool) -> None:
-    """Mark a staff member online or offline."""
-    with get_conn() as conn:
-        conn.execute("UPDATE staff SET is_online = %s WHERE id = %s", (online, staff_id))

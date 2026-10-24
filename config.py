@@ -18,7 +18,8 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # Supabase Postgres connection string
 PROVIDER = os.getenv("PROVIDER", "gemini").lower()  # "gemini" (demo) or "groq"
-GEMINI_MODEL = "gemini-2.0-flash"
+# gemini-2.0-flash was shut down by Google on 1 June 2026; override with GEMINI_MODEL in .env / Secrets.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 GROQ_MODEL = "llama-3.3-70b-versatile"
 LLM_TIMEOUT_S = 15  # per AI call; on timeout the caller falls back to keyword rules
 LLM_RETRIES = 1

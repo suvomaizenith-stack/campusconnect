@@ -1,7 +1,7 @@
 # Ticket rules
 
-- Statuses: `waiting` (no online staff) -> `assigned` -> `in_progress` -> `resolved`. `self_resolved` is a student flag; the ticket is kept.
-- Assignment: online staff in the category's department with the fewest open tickets; if none, status `waiting`. When staff go online, waiting tickets are assigned (priority first, then oldest).
+- Statuses: `waiting` (no staff in the department) -> `assigned` -> `in_progress` -> `resolved`. `self_resolved` is a student flag; the ticket is kept.
+- Assignment: staff in the category's department with the fewest open tickets; if none, status `waiting`. Staff are always available, there is no online/offline mode.
 - Ticket code: `CC-` plus the id padded to 4 digits.
 - Every status, assignment or detail change writes a `status_history` row.
 - Duplicates: auto-linked to an existing group with `dup_review='pending'`. Staff Confirm (stay linked) or Separate (unlink and recount). Every student keeps their own ticket.

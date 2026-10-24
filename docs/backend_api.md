@@ -25,10 +25,8 @@ Pages call only `ui/`, `logic/`, `ai/` and `db/`. Pages never contain SQL or AI 
 | workflow | `set_status(ticket_id, status, note, staff)` | None; writes history; primary ticket status propagates to linked tickets | D |
 | workflow | `mark_self_resolved(ticket_id, student)` | None; ticket is kept | R, T |
 | workflow | `confirm_duplicate(ticket_id, staff)` / `separate_duplicate(ticket_id, staff)` | None | D |
-| assignment | `go_online(staff)` | number of waiting tickets assigned (priority first, then oldest) | D |
-| assignment | `go_offline(staff)` | None | D, logout |
 | assignment | `reassign(ticket_id, staff_id, by)` | None; writes history | D |
-| assignment | `choose_staff(online, open_counts)` | fewest open tickets, lowest id breaks ties (pure) | tests |
+| assignment | `choose_staff(staff, open_counts)` | fewest open tickets, lowest id breaks ties (pure) | tests |
 | alerts | `evaluate_group(group_id)` | `{level, count, alert_id}`; raises alerts at 3 (hotspot) and 5 (critical) reports or a safety risk | (used by tickets, workflow) |
 | priority | `level_for(report_count, max_severity)`, `score(category, severity, report_count)`, `tier(score, level)` | pure helpers | (internal), M |
 | map_data | `map_markers(hours, category)` | markers `{id, lat, lng, title, level, color, count, pulse, radius, resolved}` | M |
@@ -42,7 +40,7 @@ Pages call only `ui/`, `logic/`, `ai/` and `db/`. Pages never contain SQL or AI 
 | views | `duplicate_reviews(staff)` | `[{ticket, primary, group}]` | D |
 | views | `staff_metrics(staff)` | `{open, in_progress, waiting, resolved_today, avg_hours, per_day}` | D |
 | views | `urgency_board(staff)`, `open_alerts(department)`, `acknowledge_alert(alert_id, staff)` | alert and urgency data | A, D |
-| views | `staff_directory(department)`, `is_online(staff_id)`, `quick_replies(category)`, `status_label(ticket)` | helpers | D, T |
+| views | `staff_directory(department)`, `quick_replies(category)`, `status_label(ticket)` | helpers | D, T |
 | timeutil | `fmt_ist`, `time_ago`, `eta_text`, `hours_from_now`, `now_utc`, `to_ist` | formatting helpers | logic only |
 | photos | `shrink_photo(data)` | `(bytes, mime)` | (used by tickets) |
 
@@ -64,13 +62,13 @@ Pages call only `ui/`, `logic/`, `ai/` and `db/`. Pages never contain SQL or AI 
 | Module | Functions |
 |---|---|
 | db | `get_conn`, `init_db`, `migrate`, `upsert_landmarks`, `list_landmarks`, `get_landmark_by_name`, `ping`, `close_pool` |
-| users | `create_student`, `get_student_by_roll`, `get_staff_by_username`, `get_staff`, `list_staff`, `upsert_staff`, `record_login_failure`, `reset_login_failures`, `is_locked`, `set_staff_online` |
-| tickets | `create_ticket`, `update_ticket`, `get_ticket`, `get_ticket_photo`, `list_tickets`, `waiting_tickets`, `open_ticket_counts`, `online_staff`, `add_history`, `add_status`, `assign_ticket`, `get_history`, `add_message`, `get_messages`, `add_system_message`, `department_metrics` |
+| users | `create_student`, `get_student_by_roll`, `get_staff_by_username`, `get_staff`, `list_staff`, `upsert_staff`, `record_login_failure`, `reset_login_failures`, `is_locked` |
+| tickets | `create_ticket`, `update_ticket`, `get_ticket`, `get_ticket_photo`, `list_tickets`, `waiting_tickets`, `open_ticket_counts`, `department_staff`, `add_history`, `add_status`, `assign_ticket`, `get_history`, `add_message`, `get_messages`, `add_system_message`, `department_metrics` |
 | groups | `create_group`, `get_group`, `update_group`, `candidate_groups`, `add_report`, `remove_ticket_report`, `student_reported`, `count_reports`, `max_severity`, `groups_for_map`, `create_alert`, `list_alerts`, `acknowledge_alert` |
 
 ## ui/
 
-`session`: `current_user`, `login_student`, `login_staff`, `logout` (sets staff offline), `require_role`. `theme`: `inject_css`, `esc`, `chip`, `card`, `metric_card`, `banner`, `timeline`. `mapview`: `outage_map`, `pin_picker`, `group_id_from_tooltip`.
+`session`: `current_user`, `login_student`, `login_staff`, `logout`, `require_role`. `theme`: `inject_css`, `esc`, `chip`, `card`, `metric_card`, `banner`, `timeline`. `mapview`: `outage_map`, `pin_picker`, `group_id_from_tooltip`.
 
 ## Not built (TODO only)
 

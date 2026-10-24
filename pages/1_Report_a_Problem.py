@@ -154,7 +154,7 @@ if res:
                                            loc.get("room") and f"room {loc['room']}") if v)
         if place:
             st.markdown(meta("map-pin", place), unsafe_allow_html=True)
-        who = f"Assigned to {res['staff_name']}." if res["staff_name"] else "Waiting for a staff member to come online."
+        who = f"Assigned to {res['staff_name']}." if res["staff_name"] else "Waiting for a staff member to be assigned."
         st.markdown(meta("user-check", res["eta_text"], who), unsafe_allow_html=True)
         if res["photo_note"]:
             st.caption(f"Photo: {res['photo_note']}")

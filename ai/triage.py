@@ -72,6 +72,8 @@ def rules_analyse(text: str, location: dict) -> dict:
     ranked = sorted(scores.values(), reverse=True)
     margin = ranked[0] - ranked[1]
     confidence = 0.2 if needs_review else min(0.9, 0.45 + 0.1 * best + 0.1 * margin)
+    if not needs_review and margin == 0:  # two categories tie: keep the guess but send it to staff review
+        confidence = min(confidence, config.LOW_CONFIDENCE - 0.05)
     return {
         "confidence": round(confidence, 2),
         "language": language_of(text),

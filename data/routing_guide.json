@@ -67,7 +67,9 @@
       "projector",
       "mcb",
       "wire",
-      "wiring"
+      "wiring",
+      "flicker",
+      "flickering"
     ],
     "default_eta_hours": 12,
     "base_priority": 60,

@@ -135,11 +135,11 @@ def open_ticket_counts(category: str) -> dict[int, int]:
     return {r["assigned_to"]: r["n"] for r in rows}
 
 
-def online_staff(department: str) -> list[dict]:
-    """Online staff of a department, ordered by id."""
+def department_staff(department: str) -> list[dict]:
+    """Staff of a department, ordered by id."""
     with get_conn() as conn:
         return conn.execute(
-            "SELECT id, name, department FROM staff WHERE department = %s AND is_online ORDER BY id", (department,)
+            "SELECT id, name, department FROM staff WHERE department = %s ORDER BY id", (department,)
         ).fetchall()
 
 

@@ -61,8 +61,19 @@ def jaccard(a: set[str], b: set[str]) -> float:
     return len(a & b) / len(a | b)
 
 
+# Building names like "A block", "block C", "D-blk" are places, not problems. Without this, the word "block" in
+# every KRMU building name counted as the plumbing keyword "blocked" and pulled tickets towards plumbing.
+_BUILDING_RE = re.compile(r"\b(?:[a-z]\s*-?\s*(?:block|blk)|(?:block|blk)\s*-?\s*[a-z0-9])\b", re.IGNORECASE)
+
+
+def strip_places(text: str) -> str:
+    """Remove building references ("A block", "block-C") so place names cannot score as problem keywords."""
+    return _BUILDING_RE.sub(" ", text)
+
+
 def category_scores(text: str) -> dict[str, int]:
-    """Number of routing-guide keywords found in the text, per category."""
+    """Number of routing-guide keywords found in the text, per category (building names ignored)."""
+    text = strip_places(text)
     return {
         cat: sum(1 for kw in info["keywords"] + info.get("keywords_hi", []) if has_keyword(text, kw))
         for cat, info in routing_guide().items() if not cat.startswith("_")

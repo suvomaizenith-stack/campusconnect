@@ -209,7 +209,7 @@ def _insights(cat: str | None) -> dict:
 
 
 def staff_directory(department: str | None = None) -> list[dict]:
-    """Staff list for the assign dropdown (id, name, department, is_online). Admins are not assignable."""
+    """Staff list for the assign dropdown (id, name, department). Admins are not assignable."""
     return [s for s in udb.list_staff() if s["role"] != "admin" and (department is None or s["department"] == department)]
 
 
@@ -221,12 +221,6 @@ def open_alerts(department: str | None = None) -> list[dict]:
 def acknowledge_alert(alert_id: int, staff: dict) -> None:
     """Mark an alert acknowledged by this staff member."""
     gdb.acknowledge_alert(alert_id, staff["name"])
-
-
-def is_online(staff_id: int) -> bool:
-    """Current online flag of a staff member."""
-    row = udb.get_staff(staff_id)
-    return bool(row and row["is_online"])
 
 
 def analytics(staff: dict) -> dict:

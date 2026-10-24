@@ -26,7 +26,6 @@ CREATE TABLE IF NOT EXISTS staff (
     department TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'staff',
     access_key_hash TEXT NOT NULL,
-    is_online BOOLEAN NOT NULL DEFAULT FALSE,
     failed_attempts INT NOT NULL DEFAULT 0,
     locked_until TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()

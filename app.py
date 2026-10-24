@@ -40,14 +40,16 @@ ANALYTICS = st.Page("pages/6_Analytics.py", title="Analytics")
 LOCATIONS = st.Page("pages/7_Locations.py", title="Locations")
 SETTINGS = st.Page("pages/8_Settings.py", title="Settings")
 LATEST = st.Page("pages/9_Latest_Reports.py", title="Latest reports")
+ALL_TICKETS = st.Page("pages/11_All_Tickets.py", title="All tickets")
 ROLE_PAGES = {
     None: [HOME],
     "student": [HOME, REPORT, TICKETS, MAP, LATEST],
-    "staff": [HOME, DASH, URGENCY, ANALYTICS, LOCATIONS, MAP],
+    "staff": [HOME, DASH, ALL_TICKETS, URGENCY, ANALYTICS, LOCATIONS, MAP],
 }
 NAV_ICONS = {
     HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DASH: "layout-dashboard", MAP: "map",
     URGENCY: "triangle-alert", ANALYTICS: "activity", LOCATIONS: "map-pinned", SETTINGS: "wrench", LATEST: "megaphone",
+    ALL_TICKETS: "clipboard-list",
 
 }
 

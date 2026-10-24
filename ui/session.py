@@ -1,8 +1,6 @@
 """Login state, role guard and logout for Streamlit pages."""
 import streamlit as st
 
-from logic import assignment
-
 USER_KEY = "user"
 
 
@@ -20,13 +18,6 @@ def login_staff(staff: dict) -> None:
 
 
 def logout() -> None:
-    """Clear the session; staff are set offline first so new tickets do not go to them."""
-    user = current_user()
-    if user and user["role"] == "staff":
-        try:
-            assignment.go_offline(user)
-        except Exception:
-            pass
     theme = st.session_state.get("theme")
     st.session_state.clear()
     if theme:

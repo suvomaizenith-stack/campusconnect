@@ -33,9 +33,9 @@ def test_clean_student_rejects_bad_input(name, roll):
 
 
 def test_assignment_picks_fewest_open_then_lowest_id():
-    online = [{"id": 3}, {"id": 1}, {"id": 2}]
-    assert choose_staff(online, {1: 4, 2: 1, 3: 1})["id"] == 2
-    assert choose_staff(online, {})["id"] == 1
+    staff = [{"id": 3}, {"id": 1}, {"id": 2}]
+    assert choose_staff(staff, {1: 4, 2: 1, 3: 1})["id"] == 2
+    assert choose_staff(staff, {})["id"] == 1
     assert choose_staff([], {}) is None
 
 

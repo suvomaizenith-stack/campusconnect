@@ -14,7 +14,7 @@ from ui.icons import icon, mask_url
 
 __all__ = ["esc", "icon", "inject_css", "mode", "theme_toggle", "chip", "category_chip", "card", "metric_card",
            "metric_row", "stat_row", "banner", "timeline", "page_header", "section_head", "empty_state", "meta",
-           "issue_cards", "brand", "user_card", "hero_art", "auth_art", "kicker"]
+           "issue_cards", "brand", "user_card", "hero_art", "auth_art", "kicker", "dash_head", "panel_head", "list_row"]
 
 VARS = {
     "light": {
@@ -49,7 +49,7 @@ ICON_BUTTONS = [
     "house", "file-pen-line", "ticket", "layout-dashboard", "map", "log-out", "sun", "moon", "send", "arrow-up-right",
     "user-check", "sparkles", "check", "circle-check", "undo-2", "refresh-cw", "x", "hand-heart", "bell", "sticky-note",
     "log-in", "user-plus", "arrow-right", "git-merge", "locate-fixed", "triangle-alert",
-    "activity", "map-pinned", "wrench", "clock",
+    "activity", "map-pinned", "wrench", "clock", "clipboard-list", "megaphone",
 ]
 
 FONTS = "@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap');"
@@ -213,6 +213,27 @@ iframe[title*="campus_map"]{border-radius:14px;border:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:900px){.cc-hero-art{opacity:.25}.cc-auth-art{min-height:auto}}
 @media (max-width:640px){.cc-hero-art{opacity:.12;width:90%}.cc-stat .val{font-size:28px}}
+/* ---------- dashboard panels, incident rows, register table ---------- */
+.cc-panel-head h3{font-family:var(--head);font-size:18px;font-weight:800;color:var(--ink);margin:0}
+.cc-panel-head p{color:var(--muted);font-size:13px;margin:.2rem 0 0}
+.cc-row{display:flex;align-items:center;gap:14px;padding:.25rem 0}
+.cc-row-ico{width:38px;height:38px;border-radius:10px;background:var(--soft);display:grid;place-items:center;flex:none;color:var(--ink)}
+.cc-row-main{flex:1;min-width:0}
+.cc-row-main b{display:block;color:var(--ink);font-family:var(--head);font-size:15px;font-weight:700}
+.cc-row-main .sub{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.cc-row-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.cc-row-count{text-align:right;flex:none;padding-left:10px;border-left:1px solid var(--line)}
+.cc-row-count b{display:block;font-family:var(--head);font-size:22px;font-weight:800;color:var(--c)}
+.cc-row-count span{color:var(--muted);font-size:11.5px}
+.cc-tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.cc-table{width:100%;border-collapse:collapse;font-size:13px;color:var(--ink)}
+.cc-table th{text-align:left;color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;padding:.6rem .8rem;background:var(--soft);white-space:nowrap}
+.cc-table td{padding:.6rem .8rem;border-top:1px solid var(--line);vertical-align:middle}
+.cc-table .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:nowrap}
+.cc-table .title{font-weight:600;min-width:200px}
+.cc-table .muted{color:var(--muted);white-space:nowrap}
+[class*="__cta_"] a[data-testid="stPageLink-NavLink"]{background:var(--btn-bg);color:var(--btn-fg)!important;border-radius:9px;padding:.6rem 1rem;justify-content:center;font-weight:700;text-decoration:none}
+[class*="__cta_"] a[data-testid="stPageLink-NavLink"] *{color:var(--btn-fg)!important}
 """
 
 
@@ -337,6 +358,25 @@ def page_header(kick: str, title: str, sub: str = "") -> None:
     """Page intro: small uppercase label, big title, optional one-line description."""
     text = f"<p>{esc(sub)}</p>" if sub else ""
     st.markdown(f'<div class="cc-intro">{kicker(kick)}<h1>{esc(title)}</h1>{text}</div>', unsafe_allow_html=True)
+
+
+def dash_head(kick: str, title: str, sub: str = "") -> None:
+    page_header(kick, title, sub)
+
+
+def panel_head(title: str, sub: str = "") -> None:
+    text = f"<p>{esc(sub)}</p>" if sub else ""
+    st.markdown(f'<div class="cc-panel-head"><h3>{esc(title)}</h3>{text}</div>', unsafe_allow_html=True)
+
+
+def list_row(ico: str, title: str, sub: str, chips: str = "", right: tuple | None = None) -> str:
+    count = ""
+    if right:
+        n, label, color = right
+        count = f'<div class="cc-row-count" style="--c:var(--{color})"><b>{esc(n)}</b><span>{esc(label)}</span></div>'
+    return (f'<div class="cc-row"><span class="cc-row-ico">{icon(ico, 18)}</span>'
+            f'<div class="cc-row-main"><b>{esc(title)}</b><span class="sub">{esc(sub)}</span>'
+            f'<div class="cc-row-chips">{chips}</div></div>{count}</div>')
 
 
 def section_head(kick: str, title: str, right: str = "", live: bool = False) -> None:

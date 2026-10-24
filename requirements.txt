@@ -1,4 +1,4 @@
-streamlit>=1.40
+streamlit>=1.46  # st.context.theme and [theme.light]/[theme.dark] in config.toml need 1.46+
 google-genai
 httpx
 groq
