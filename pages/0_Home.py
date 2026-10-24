@@ -50,9 +50,10 @@ with form, st.container(key="auth_card"):
         with login_tab, st.form("student_login", border=False):
             roll = st.text_input("Roll number")
             pin = st.text_input("PIN", type="password")
+            keep = st.checkbox("Keep me signed in on this device", value=True, key="keep_login")
             if st.form_submit_button("Log in", type="primary", key="i_log-in__student_login", use_container_width=True):
                 try:
-                    login_student(auth.login_student(roll, pin))
+                    login_student(auth.login_student(roll, pin), keep)
                 except auth.AuthError as e:
                     st.error(str(e))
                 else:
@@ -62,9 +63,10 @@ with form, st.container(key="auth_card"):
             roll_new = st.text_input("Roll number", key="roll_new")
             pin1 = st.text_input("Choose a PIN (4-8 digits)", type="password")
             pin2 = st.text_input("Repeat PIN", type="password")
+            keep_new = st.checkbox("Keep me signed in on this device", value=True, key="keep_signup")
             if st.form_submit_button("Create account", type="primary", key="i_user-plus__student_signup", use_container_width=True):
                 try:
-                    login_student(auth.signup_student(name, roll_new, pin1, pin2))
+                    login_student(auth.signup_student(name, roll_new, pin1, pin2), keep_new)
                 except auth.AuthError as e:
                     st.error(str(e))
                 else:

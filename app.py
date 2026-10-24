@@ -6,7 +6,7 @@ from logic import drafts as drafts_logic
 from logic import qr, views
 from logic.setup import bootstrap
 from ui.icons import icon
-from ui.session import current_user, logout
+from ui.session import current_user, logout, render_device_cookie, restore_device
 from ui.theme import banner, brand, inject_css, theme_toggle, user_card
 
 st.set_page_config(page_title="Campus Saathi", page_icon=":material/school:", layout="wide")
@@ -55,6 +55,7 @@ NAV_ICONS = {
 
 }
 
+restore_device()
 user = current_user()
 
 scanned_code = st.query_params.get(qr.PARAM)
@@ -133,4 +134,5 @@ if user:
                 logout()
                 st.rerun()
 
+render_device_cookie()
 nav.run()

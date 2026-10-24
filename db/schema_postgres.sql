@@ -163,6 +163,14 @@ CREATE TABLE IF NOT EXISTS drafts (
 );
 CREATE INDEX IF NOT EXISTS drafts_student_idx ON drafts (student_id);
 
+CREATE TABLE IF NOT EXISTS device_tokens (
+    token_hash TEXT PRIMARY KEY,
+    student_id BIGINT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS device_tokens_student_idx ON device_tokens (student_id);
+
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE landmarks ENABLE ROW LEVEL SECURITY;
@@ -174,6 +182,7 @@ ALTER TABLE group_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Supabase's public API roles should not see anything even if a grant appears later.
 DO $$
