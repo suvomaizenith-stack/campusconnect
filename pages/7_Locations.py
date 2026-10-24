@@ -3,7 +3,8 @@ from urllib.parse import urlsplit
 
 import streamlit as st
 
-from logic import map_data, mapfile, qrcodes, tickets
+import config
+from logic import map_data, mapfile, qr, qr_poster, qrcodes, tickets
 from ui.session import require_role
 from ui.theme import empty_state, esc, meta, page_header, section_head
 
@@ -51,3 +52,33 @@ with q2:
     st.markdown(f"**{esc(landmarks[pick])}**", unsafe_allow_html=True)
     st.caption(link)
     st.download_button("Download QR (PNG)", code, file_name=f"qr-{pick}.png", mime="image/png", key="dl_qr")
+
+st.divider()
+section_head("Print", "QR codes for wall spots", "Posters for fixed spots (e.g. Boys Hostel, 2nd floor, washroom). The report form opens with that spot filled in.")
+poster_base = config.APP_URL or base
+if not config.APP_URL:
+    st.caption("APP_URL is not set, so the App address above is used. Set APP_URL to the public link before printing.")
+
+
+@st.cache_data(show_spinner="Building the print sheet...")
+def _sheet_pdf(root: str) -> bytes:
+    return qr_poster.pdf_bytes(list(qr.spots().values()), root)
+
+
+@st.cache_data(show_spinner=False)
+def _card_png(code: str, root: str) -> bytes:
+    return qr_poster.png_bytes(qr_poster.card(qr.spots()[code], root))
+
+
+all_spots = list(qr.spots().values())
+pick_spot = st.selectbox("Spot", [s["code"] for s in all_spots], format_func=lambda c: f"{qr.label(qr.spots()[c])}  ({c})")
+try:
+    st.image(_card_png(pick_spot, poster_base), width=260, alt=f"QR poster for {qr.label(qr.spots()[pick_spot])}")
+    st.caption(qr.link(pick_spot, poster_base))
+    d1, d2 = st.columns(2)
+    d1.download_button("Download this poster (PNG)", _card_png(pick_spot, poster_base), file_name=f"qr_{pick_spot}.png",
+                       mime="image/png", key="dl_spot")
+    d2.download_button(f"Download all {len(all_spots)} (PDF, 4 per A4)", _sheet_pdf(poster_base),
+                       file_name="qr_codes_print.pdf", mime="application/pdf", key="dl_all_spots")
+except ValueError as err:
+    st.warning(str(err))

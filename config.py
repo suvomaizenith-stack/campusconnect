@@ -17,6 +17,7 @@ _copy_streamlit_secrets()
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")  # Supabase Postgres connection string
+APP_URL = os.getenv("APP_URL", "").strip().rstrip("/")  # public app link, printed in the QR codes
 PROVIDER = os.getenv("PROVIDER", "gemini").lower()  # "gemini" (demo) or "groq"
 # gemini-2.0-flash was shut down by Google on 1 June 2026; override with GEMINI_MODEL in .env / Secrets.
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")

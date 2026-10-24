@@ -2,7 +2,7 @@
 import streamlit as st
 
 import config
-from logic import cache, chat, drafts, map_data, mapfile, safety, tickets, workflow
+from logic import cache, chat, drafts, map_data, mapfile, qr, safety, tickets, workflow
 from ui.mapview import campus_map, focus_on, outline
 from ui.session import require_role
 from ui.theme import category_chip, chip, esc, icon, meta, page_header
@@ -33,6 +33,19 @@ if qr_slug in by_slug and st.session_state.get("rp_qr") != qr_slug:
     st.session_state["rp_qr"] = qr_slug
     st.session_state["rp_landmark"] = by_slug[qr_slug]["name"]
 
+scanned = st.session_state.pop("qr_spot", None)
+if scanned and scanned["landmark"] in by_slug:  # a scanned wall QR starts a fresh report for that exact spot
+    for k in ("rp_text", "rp_category", "rp_result", "rp_draft_id", "rp_prefill"):
+        st.session_state.pop(k, None)
+    px, py = qr.pin_point(scanned)
+    found = map_data.resolve_pin(px, py, 100.0)
+    st.session_state.update({
+        "rp_landmark": by_slug[scanned["landmark"]]["name"], "rp_floor_hint": scanned["floor"], "rp_room": "",
+        "rp_nearby": scanned["spot"], "rp_qr_label": qr.label(scanned),
+        "rp_pin": {**found, "via": "qr", "distance_m": 0, "x": px, "y": py},
+        "rp_focus": focus_on(found["landmark"], 2.0) if found["landmark"] else None,
+    })
+
 prefill = st.session_state.pop("rp_prefill", None)
 if prefill:
     st.session_state["rp_text"] = "\n".join(p for p in (prefill["title"], prefill["details"]) if p)
@@ -46,6 +59,9 @@ if pin and pin["landmark_id"] in by_slug and st.session_state.pop("rp_pin_apply"
 st.session_state.setdefault("rp_landmark", AUTO)
 if st.session_state["rp_landmark"] not in by_name and st.session_state["rp_landmark"] != AUTO:
     st.session_state["rp_landmark"] = AUTO
+
+if st.session_state.get("rp_qr_label"):
+    st.info(f"You scanned a QR code at **{esc(st.session_state['rp_qr_label'])}**. The place is filled in, just describe the problem.")
 
 left, right = st.columns([3, 2], gap="large")
 
@@ -69,7 +85,7 @@ with left:
         near = f" (about {pin['distance_m']} m away)" if pin["via"] in ("snap", "nearest") and pin["distance_m"] else ""
         st.success(f"Pin set: **{esc(pin['name'])}**{near}")
         if st.button("Clear pin", key="i_x__clearpin"):
-            for k in ("rp_pin", "rp_focus"):
+            for k in ("rp_pin", "rp_focus", "rp_qr_label", "rp_floor_hint"):
                 st.session_state.pop(k, None)
             st.session_state["rp_landmark"] = AUTO
             st.rerun()
@@ -116,13 +132,15 @@ with right:
 
     shown = by_slug.get(final_slug) if final_slug else None
     floors = (shown["floors"] if shown else []) or []
-    guessed_floor = read["floor"] if read and read["floor"] in floors else None
+    hint = st.session_state.get("rp_floor_hint")
+    guessed_floor = read["floor"] if read and read["floor"] in floors else (hint if hint in floors else None)
     options = ["Not sure"] + floors
     floor = st.selectbox("Floor", options, index=options.index(guessed_floor) if guessed_floor else 0,
                          key=f"rp_floor_{final_slug}_{guessed_floor}")
     c3, c4 = st.columns(2)
-    room = c3.text_input("Room (optional)", max_chars=60, placeholder=(read or {}).get("room") or "e.g. 204")
-    nearby = c4.text_input("Near (optional)", max_chars=120, placeholder=(read or {}).get("nearby") or "e.g. the stairs")
+    room = c3.text_input("Room (optional)", max_chars=60, key="rp_room", placeholder=(read or {}).get("room") or "e.g. 204")
+    nearby = c4.text_input("Near (optional)", max_chars=120, key="rp_nearby",
+                           placeholder=(read or {}).get("nearby") or "e.g. the stairs")
     if read and (read["name"] or read["floor"]):
         bits = [read["name"], f"{read['floor']} floor" if read["floor"] else None]
         st.caption("We read: " + " · ".join(b for b in bits if b))
@@ -145,7 +163,7 @@ with right:
                     st.session_state["rp_new"] = True
                     if draft_id := st.session_state.pop("rp_draft_id", None):
                         drafts.remove(student, draft_id)
-                    for k in ("rp_pin", "rp_focus"):
+                    for k in ("rp_pin", "rp_focus", "rp_qr_label", "rp_floor_hint"):
                         st.session_state.pop(k, None)
                 except Exception:
                     st.error("Something went wrong while saving your report. Please try again.")

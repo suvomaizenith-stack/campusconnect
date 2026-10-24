@@ -229,3 +229,6 @@ data/uploads/
 
 # Map component runtime copy of data/campus_map.png
 ui/map_component/campus_map.png
+
+# Generated QR posters
+qr_codes/

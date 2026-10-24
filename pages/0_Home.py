@@ -1,11 +1,14 @@
 """Landing page: sign-in screen for visitors, a welcome hero for signed-in users."""
 import streamlit as st
 
-from logic import auth
+from logic import auth, qr
 from ui.session import current_user, login_staff, login_student
-from ui.theme import auth_art, esc, hero_art, kicker
+from ui.theme import auth_art, banner, esc, hero_art, kicker
 
 user = current_user()
+
+if user and user["role"] == "student" and st.session_state.get("qr_spot"):
+    st.switch_page("pages/1_Report_a_Problem.py")  # signed in after scanning: go straight to the form
 
 if user:
     is_student = user["role"] == "student"
@@ -26,6 +29,10 @@ if user:
             else:
                 st.page_link("pages/3_Staff_Dashboard.py", label="Open dashboard")
     st.stop()
+
+if st.session_state.get("qr_spot"):
+    banner(f"You scanned a QR code at {qr.label(st.session_state['qr_spot'])}. Sign in as a student and "
+           "you will land on the report form with this place filled in.")
 
 art, form = st.columns([5, 4], gap="large")
 art.markdown(auth_art(), unsafe_allow_html=True)

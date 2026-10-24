@@ -3,7 +3,7 @@ import streamlit as st
 
 from ai.llm import get_ai_status
 from logic import drafts as drafts_logic
-from logic import views
+from logic import qr, views
 from logic.setup import bootstrap
 from ui.icons import icon
 from ui.session import current_user, logout
@@ -56,6 +56,20 @@ NAV_ICONS = {
 }
 
 user = current_user()
+
+scanned_code = st.query_params.get(qr.PARAM)
+if scanned_code is not None:  # a wall QR code was scanned: remember the spot, then drop the parameter from the URL
+    del st.query_params[qr.PARAM]
+    spot = qr.get(scanned_code)
+    if not spot:
+        st.toast("That QR code is not recognised. You can still report a problem below.", icon=":material/qr_code:")
+    elif user and user["role"] == "student":
+        st.session_state["qr_spot"] = spot
+        st.switch_page(REPORT)
+    elif user:
+        st.toast("QR codes on walls are for students to report problems.", icon=":material/info:")
+    else:
+        st.session_state["qr_spot"] = spot
 pages = ROLE_PAGES[user["role"] if user else None]
 if user and user.get("is_admin"):
     pages = pages + [SETTINGS]
