@@ -2,6 +2,7 @@
 import streamlit as st
 
 from ai.llm import get_ai_status
+from logic import drafts as drafts_logic
 from logic import views
 from logic.setup import bootstrap
 from ui.icons import icon
@@ -29,10 +30,11 @@ if _error:
     st.caption(f"Technical detail: {_error}")
     st.stop()
 
-# TODO (post-MVP): voice notes, Telegram intake, staff-to-staff channels, drafts, learned ETA.
+# TODO (post-MVP): voice notes, Telegram intake, staff-to-staff channels, learned ETA.
 HOME = st.Page("pages/0_Home.py", title="Home", default=True)
 REPORT = st.Page("pages/1_Report_a_Problem.py", title="Report a Problem", url_path="report")
 TICKETS = st.Page("pages/2_My_Tickets.py", title="My Tickets")
+DRAFTS = st.Page("pages/10_My_Drafts.py", title="My drafts")
 DASH = st.Page("pages/3_Staff_Dashboard.py", title="Dashboard")
 MAP = st.Page("pages/4_Outage_Map.py", title="Outage Map")
 URGENCY = st.Page("pages/5_Urgency.py", title="Urgency")
@@ -43,11 +45,11 @@ LATEST = st.Page("pages/9_Latest_Reports.py", title="Latest reports")
 ALL_TICKETS = st.Page("pages/11_All_Tickets.py", title="All tickets")
 ROLE_PAGES = {
     None: [HOME],
-    "student": [HOME, REPORT, TICKETS, MAP, LATEST],
+    "student": [HOME, REPORT, TICKETS, DRAFTS, MAP, LATEST],
     "staff": [HOME, DASH, ALL_TICKETS, URGENCY, ANALYTICS, LOCATIONS, MAP],
 }
 NAV_ICONS = {
-    HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DASH: "layout-dashboard", MAP: "map",
+    HOME: "house", REPORT: "file-pen-line", TICKETS: "ticket", DRAFTS: "sticky-note", DASH: "layout-dashboard", MAP: "map",
     URGENCY: "triangle-alert", ANALYTICS: "activity", LOCATIONS: "map-pinned", SETTINGS: "wrench", LATEST: "megaphone",
     ALL_TICKETS: "clipboard-list",
 
@@ -64,8 +66,9 @@ with st.sidebar:
     if len(pages) > 1:
         st.markdown('<div class="cc-side-label">MENU</div>', unsafe_allow_html=True)
     for i, page in enumerate(pages):
+        label = f"My drafts ({len(drafts_logic.for_student(user))})" if page is DRAFTS else page.title
         with st.container(key=f"i_{NAV_ICONS[page]}__nav{i}"):
-            st.page_link(page, label=page.title)
+            st.page_link(page, label=label)
     if not user:
         st.markdown(
             f'<div class="cc-side-note"><b>{icon("shield-check", 15)}Sign in to begin</b>'
@@ -112,7 +115,7 @@ if user:
             role = "Admin · all departments" if user.get("is_admin") else user["department"].title() + " staff"
         st.markdown(user_card(user["name"], role), unsafe_allow_html=True)
         with st.container(key="i_log-out__logout"):
-            if st.button("Log out", use_container_width=True):
+            if st.button("Log out", width="stretch"):
                 logout()
                 st.rerun()
 

@@ -5,7 +5,7 @@ import config
 from ai import llm
 from ai.keywords import issue_tokens, jaccard
 from ai.triage import rules_analyse
-from logic import auth, priority
+from logic import auth, drafts, priority
 from logic.assignment import choose_staff
 from logic.tickets import validate_category
 
@@ -15,6 +15,11 @@ def test_password_round_trip_and_salt():
     assert auth.verify_password("s3cret", stored)
     assert not auth.verify_password("wrong", stored)
     assert auth.hash_password("same") != auth.hash_password("same")
+
+
+def test_draft_needs_a_title_before_saving():
+    with pytest.raises(ValueError):
+        drafts.save({"id": 1}, "   ", None, None, "details")
 
 
 def test_access_key_format():

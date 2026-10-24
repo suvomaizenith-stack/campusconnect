@@ -30,7 +30,7 @@ if user:
 art, form = st.columns([5, 4], gap="large")
 art.markdown(auth_art(), unsafe_allow_html=True)
 
-with form:
+with form, st.container(key="auth_card"):
     st.markdown(
         f'<div class="cc-auth-form">{kicker("Welcome")}<h2>Sign in to Campus Saathi</h2>'
         "<p>Pick the option that matches you.</p></div>",

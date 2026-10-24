@@ -2,7 +2,7 @@
 import streamlit as st
 
 import config
-from logic import cache, chat, map_data, mapfile, safety, tickets, workflow
+from logic import cache, chat, drafts, map_data, mapfile, safety, tickets, workflow
 from ui.mapview import campus_map, focus_on, outline
 from ui.session import require_role
 from ui.theme import category_chip, chip, esc, icon, meta, page_header
@@ -32,6 +32,13 @@ qr_slug = st.query_params.get("landmark")
 if qr_slug in by_slug and st.session_state.get("rp_qr") != qr_slug:
     st.session_state["rp_qr"] = qr_slug
     st.session_state["rp_landmark"] = by_slug[qr_slug]["name"]
+
+prefill = st.session_state.pop("rp_prefill", None)
+if prefill:
+    st.session_state["rp_text"] = "\n".join(p for p in (prefill["title"], prefill["details"]) if p)
+    st.session_state["rp_landmark"] = prefill["location"] if prefill["location"] in by_name else AUTO
+    st.session_state["rp_category"] = config.CATEGORY_LABELS.get(prefill["kind"], AUTO)
+    st.session_state["rp_draft_id"] = prefill["id"]
 
 pin = st.session_state.get("rp_pin")
 if pin and pin["landmark_id"] in by_slug and st.session_state.pop("rp_pin_apply", False):
@@ -121,7 +128,7 @@ with right:
         st.caption("We read: " + " · ".join(b for b in bits if b))
     photo = st.file_uploader("Photo (optional)", type=["jpg", "jpeg", "png", "webp"])
 
-    if st.button("Submit report", type="primary", key="i_send__submit", use_container_width=True):
+    if st.button("Submit report", type="primary", key="i_send__submit", width="stretch"):
         if not text.strip():
             st.warning("Please describe the problem first.")
         elif read and read["ambiguous"] and not final_slug:
@@ -136,6 +143,8 @@ with right:
                         pin["x"] if use_pin else None, pin["y"] if use_pin else None, category=category,
                     )
                     st.session_state["rp_new"] = True
+                    if draft_id := st.session_state.pop("rp_draft_id", None):
+                        drafts.remove(student, draft_id)
                     for k in ("rp_pin", "rp_focus"):
                         st.session_state.pop(k, None)
                 except Exception:

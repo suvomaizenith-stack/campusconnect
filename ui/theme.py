@@ -166,6 +166,8 @@ html,body,.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"]{font-
 .cc-auth-art .cc-kicker{color:#8b8a93}.cc-auth-art .foot{position:relative;z-index:1;color:#c7c7cd;font-size:12px;display:flex;align-items:center;gap:8px}
 .cc-auth-art>*{position:relative;z-index:1}
 .cc-auth-form h2{font-size:30px!important;margin:.5rem 0 .3rem!important;padding:0!important}.cc-auth-form p{color:var(--muted)!important;font-size:13.5px}
+.st-key-auth_card{background:var(--paper)!important;border:1px solid var(--line)!important;border-radius:20px!important;padding:2.1rem clamp(20px,3vw,44px) 2.3rem!important;box-shadow:0 24px 60px -20px rgba(0,0,0,.25);transform-origin:top center;animation:ccAuthPop .7s cubic-bezier(.16,1,.3,1) both}
+.st-key-auth_card [data-testid="stForm"],.st-key-auth_card [data-baseweb="tab-panel"]{animation:ccAuthFields .5s ease-out .25s both}
 /* ---------- widgets ---------- */
 [data-baseweb="input"],[data-baseweb="textarea"],[data-baseweb="select"]>div{background:var(--paper)!important;border-color:var(--line)!important;border-radius:8px!important;color:var(--ink)!important}
 [data-baseweb="input"] input,[data-baseweb="textarea"] textarea,[data-baseweb="select"] div,[data-baseweb="select"] input{color:var(--ink)!important;-webkit-text-fill-color:var(--ink)}
@@ -204,6 +206,8 @@ iframe[title*="campus_map"]{border-radius:14px;border:1px solid var(--line)}
 [class*="st-key-i_"] a[data-testid="stPageLink-NavLink"]::before{width:18px;height:18px}
 /* ---------- motion ---------- */
 @keyframes ccRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ccAuthPop{0%{opacity:0;transform:translateY(34px) scale(.95)}70%{opacity:1;transform:translateY(-4px) scale(1.005)}100%{opacity:1;transform:none}}
+@keyframes ccAuthFields{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes ccFloat{50%{transform:translateY(-8px) rotate(1deg)}}
 @keyframes ccPulse{0%,100%{opacity:1}50%{opacity:.45}}
 @keyframes ccSpin{to{transform:rotate(360deg)}}
